@@ -36,3 +36,11 @@ build/
 
 ### Mac OS ###
 .DS_Store
+# Local credentials, preferences and optional model downloads
+.env
+.env.*
+data/
+models/
+.venv*/
+__pycache__/
+.validation-pom.xml

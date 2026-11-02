@@ -130,3 +130,11 @@ The main components include:
 - **Use Cases:** Authentication, Image Search, Recommendations, Pin Management, Board Management, Profile Customization
 - **Data Access:** JSON repositories and Unsplash API integration
 - **User Interface:** Java Swing components
+
+## Running Kevin's search and recommendation module
+
+Stories 2 and 3 now have a standalone Java Swing implementation. It includes Unsplash search with pagination/orientation/order controls, persistent preference samples, cosine recommendations, Taste Mixer, multi-user group ranking and board-preference outlier analysis.
+
+Set `UNSPLASH_ACCESS_KEY` in your terminal, then run `mvn test` and `mvn exec:java` with JDK 11+ and Maven. Default embeddings use a clearly labelled RGB histogram; an optional CLIP ONNX adapter is available via `CLIP_MODEL_PATH`. The CLIP model is not bundled.
+
+See [Kevin's setup, demo, architecture, team integration and verification guide](docs/KEVIN_DISCOVERY.md). This module leaves accounts, board/pin CRUD and profiles to their assigned owners.
