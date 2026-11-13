@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class DiscoveryService {
+public final class DiscoveryService implements DiscoveryInputBoundary {
 
     private final ImageCatalog catalog;
 
@@ -26,6 +26,7 @@ public final class DiscoveryService {
         this.preferences = preferences;
     }
 
+    @Override
     public List<Photo> search(String query, int page, String orientation, String order)
             throws IOException {
         if (query == null || query.isBlank()) {
@@ -34,20 +35,23 @@ public final class DiscoveryService {
         if (page < 1) {
             throw new IllegalArgumentException("Page must be positive");
         }
-        if (!List.of("", "landscape", "portrait", "squarish").contains(orientation)) {
+        if (orientation == null
+                || !List.of("", "landscape", "portrait", "squarish").contains(orientation)) {
             throw new IllegalArgumentException("Unknown orientation");
         }
-        if (!List.of("relevant", "latest").contains(order)) {
+        if (order == null || !List.of("relevant", "latest").contains(order)) {
             throw new IllegalArgumentException("Unknown sort order");
         }
         return List.copyOf(catalog.search(query.trim(), page, orientation, order));
     }
 
+    @Override
     public List<Photo> samples(String profile) throws IOException {
         checkProfile(profile);
         return List.copyOf(preferences.load(profile.trim()));
     }
 
+    @Override
     public void like(String profile, Photo photo) throws IOException {
         List<Photo> photos = new ArrayList<>(samples(profile));
         for (Photo savedPhoto : photos) {
@@ -61,6 +65,7 @@ public final class DiscoveryService {
         preferences.save(profile.trim(), photos);
     }
 
+    @Override
     public void remove(String profile, String photoId) throws IOException {
         List<Photo> photos = new ArrayList<>(samples(profile));
         photos.removeIf(p -> p.id().equals(photoId));
@@ -75,10 +80,12 @@ public final class DiscoveryService {
         return FeatureVector.average(vectors);
     }
 
+    @Override
     public List<ScoredPhoto> recommend(List<Photo> candidates, String profile) throws IOException {
         return rank(candidates, List.of(preference(profile)), excluded(List.of(profile)));
     }
 
+    @Override
     public List<ScoredPhoto> mix(List<Photo> candidates, String a, String b, double weight)
             throws IOException {
         if (!Double.isFinite(weight) || weight < 0 || weight > 1) {
@@ -96,9 +103,10 @@ public final class DiscoveryService {
                 excluded(List.of(a, b)));
     }
 
+    @Override
     public List<ScoredPhoto> group(List<Photo> candidates, List<String> profiles)
             throws IOException {
-        if (profiles.isEmpty()) {
+        if (profiles == null || profiles.isEmpty()) {
             throw new IllegalArgumentException("Choose at least one group member");
         }
         List<FeatureVector> targets = new ArrayList<>();
@@ -108,15 +116,20 @@ public final class DiscoveryService {
         return rank(candidates, targets, excluded(profiles));
     }
 
+    @Override
     public List<ScoredPhoto> analyze(String profile) throws IOException {
         List<Photo> photos = samples(profile);
         if (photos.size() < 2) {
             throw new IllegalArgumentException("Board analysis needs at least two images");
         }
-        FeatureVector centroid = preference(profile);
-        List<ScoredPhoto> scores = new ArrayList<>();
+        List<FeatureVector> vectors = new ArrayList<>();
         for (Photo photo : photos) {
-            scores.add(new ScoredPhoto(photo, embeddings.embed(photo).cosine(centroid)));
+            vectors.add(embeddings.embed(photo));
+        }
+        FeatureVector centroid = FeatureVector.average(vectors);
+        List<ScoredPhoto> scores = new ArrayList<>();
+        for (int i = 0; i < photos.size(); i++) {
+            scores.add(new ScoredPhoto(photos.get(i), vectors.get(i).cosine(centroid)));
         }
         scores.sort(
                 Comparator.comparingDouble(ScoredPhoto::score).thenComparing(s -> s.photo().id()));

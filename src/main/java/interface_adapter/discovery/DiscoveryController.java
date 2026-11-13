@@ -3,7 +3,7 @@ package interface_adapter.discovery;
 import entity.Photo;
 import entity.ScoredPhoto;
 
-import use_case.discovery.DiscoveryService;
+import use_case.discovery.DiscoveryInputBoundary;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ public final class DiscoveryController {
         }
     }
 
-    private final DiscoveryService service;
+    private final DiscoveryInputBoundary service;
 
     private final ThumbnailLoader thumbnails;
 
@@ -55,7 +55,8 @@ public final class DiscoveryController {
 
     private boolean working;
 
-    public DiscoveryController(DiscoveryService service, ThumbnailLoader thumbnails, View view) {
+    public DiscoveryController(
+            DiscoveryInputBoundary service, ThumbnailLoader thumbnails, View view) {
         this.service = service;
         this.thumbnails = thumbnails;
         this.view = view;
@@ -64,6 +65,7 @@ public final class DiscoveryController {
     public void search(String query, int page, String orientation, String order) {
         run(
                 () -> {
+                    candidates = List.of();
                     List<Photo> found = service.search(query, page, orientation, order);
                     List<Card> cards = cards(found, null);
                     candidates = found;
@@ -74,19 +76,19 @@ public final class DiscoveryController {
 
     public void recommend(String a) {
         run(
-                () -> scored(service.recommend(candidates, a)),
+                () -> scored(service.recommend(requireCandidates(), a)),
                 "Best matches first; saved images excluded.");
     }
 
     public void mix(String a, String b, double weight) {
         run(
-                () -> scored(service.mix(candidates, a, b, weight)),
+                () -> scored(service.mix(requireCandidates(), a, b, weight)),
                 "Taste Mixer: " + Math.round(100 * weight) + "% A.");
     }
 
     public void group(List<String> profiles) {
         run(
-                () -> scored(service.group(candidates, profiles)),
+                () -> scored(service.group(requireCandidates(), profiles)),
                 "Group: highest minimum similarity first.");
     }
 
@@ -117,6 +119,14 @@ public final class DiscoveryController {
                     return cards(service.samples(a), null);
                 },
                 "Removed preference from " + a + ".");
+    }
+
+    private List<Photo> requireCandidates() {
+        if (candidates.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Search for images before requesting recommendations");
+        }
+        return candidates;
     }
 
     private List<Card> scored(List<ScoredPhoto> results) {

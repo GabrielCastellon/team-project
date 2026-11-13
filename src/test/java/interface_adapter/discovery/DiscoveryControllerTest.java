@@ -109,6 +109,73 @@ class DiscoveryControllerTest {
     }
 
     @Test
+    void failedSearchCannotReusePreviousCandidatesAndLaterSearchRecovers() throws Exception {
+        AtomicBoolean failSearch = new AtomicBoolean(false);
+        AtomicReference<CountDownLatch> done = new AtomicReference<>();
+        AtomicReference<String> status = new AtomicReference<>();
+        DiscoveryController.View view =
+                new DiscoveryController.View() {
+                    public void busy(boolean value) {
+                        if (!value) {
+                            done.get().countDown();
+                        }
+                    }
+
+                    public void show(List<DiscoveryController.Card> cards, String message) {
+                        status.set(message);
+                    }
+
+                    public void status(String message) {
+                        status.set(message);
+                    }
+                };
+        DiscoveryController controller =
+                new DiscoveryController(
+                        service(
+                                () -> {
+                                    if (failSearch.get()) {
+                                        throw new IOException("search unavailable");
+                                    }
+                                    return List.of(
+                                            new Photo(
+                                                    "x",
+                                                    "photo",
+                                                    "image",
+                                                    "page",
+                                                    "artist",
+                                                    "profile",
+                                                    "download"));
+                                }),
+                        url -> null,
+                        view);
+
+        runAndWait(done, () -> controller.recommend("A"));
+        assertTrue(status.get().contains("Search for images"));
+        runAndWait(done, () -> controller.search("room", 1, "", "relevant"));
+        assertTrue(status.get().contains("Search page 1"));
+        failSearch.set(true);
+        runAndWait(done, () -> controller.search("forest", 1, "", "relevant"));
+        assertTrue(status.get().contains("search unavailable"));
+        runAndWait(done, () -> controller.recommend("A"));
+        assertTrue(status.get().contains("Search for images"));
+        runAndWait(done, () -> controller.mix("A", "B", .5));
+        assertTrue(status.get().contains("Search for images"));
+        runAndWait(done, () -> controller.group(List.of("A", "B")));
+        assertTrue(status.get().contains("Search for images"));
+        failSearch.set(false);
+        runAndWait(done, () -> controller.search("forest", 1, "", "relevant"));
+        runAndWait(done, () -> controller.recommend("A"));
+        assertTrue(status.get().contains("Save at least one preference image"));
+    }
+
+    private void runAndWait(AtomicReference<CountDownLatch> done, Runnable action)
+            throws Exception {
+        done.set(new CountDownLatch(1));
+        SwingUtilities.invokeAndWait(action);
+        assertTrue(done.get().await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
     void swingPanelConstructsAndRendersHeadlessly() throws Exception {
         SwingUtilities.invokeAndWait(
                 () -> {
