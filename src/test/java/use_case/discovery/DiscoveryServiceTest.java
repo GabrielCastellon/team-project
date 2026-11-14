@@ -23,6 +23,10 @@ class DiscoveryServiceTest {
 
     private boolean failTracking;
 
+    private int loads;
+
+    private int embeddings;
+
     static Photo photo(String id) {
         return new Photo(id, id, "image:" + id, "page", "artist", "artist-page", "download");
     }
@@ -52,6 +56,7 @@ class DiscoveryServiceTest {
                             }
 
                             public FeatureVector embed(Photo photo) throws IOException {
+                                embeddings++;
                                 if (!vectors.containsKey(photo.id())) {
                                     throw new IOException("embedding unavailable");
                                 }
@@ -61,6 +66,7 @@ class DiscoveryServiceTest {
                         new PreferenceStore() {
 
                             public List<Photo> load(String id) {
+                                loads++;
                                 return saved.getOrDefault(id, List.of());
                             }
 
@@ -116,6 +122,22 @@ class DiscoveryServiceTest {
         saved.put("board", List.of(photo("a"), photo("x"), photo("b")));
         assertEquals("b", service.analyze("board").get(0).photo().id());
         assertEquals(3, service.samples("board").size());
+    }
+
+    @Test
+    void analyzerUsesOneBoardSnapshotAndEmbedsEachPhotoOnce() throws Exception {
+        saved.put("board", List.of(photo("a"), photo("x"), photo("b")));
+        service.analyze("board");
+        assertEquals(1, loads);
+        assertEquals(3, embeddings);
+    }
+
+    @Test
+    void nullFiltersAndGroupGiveValidationErrors() {
+        assertThrows(
+                IllegalArgumentException.class, () -> service.search("room", 1, null, "relevant"));
+        assertThrows(IllegalArgumentException.class, () -> service.search("room", 1, "", null));
+        assertThrows(IllegalArgumentException.class, () -> service.group(List.of(), null));
     }
 
     @Test

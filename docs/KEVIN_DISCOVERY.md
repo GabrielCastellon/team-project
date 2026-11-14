@@ -2,18 +2,18 @@
 
 ## Scope and status
 
-Implements README stories 2 (search/browse) and 3 (recommendations), plus Taste Mixer, group ranking and preference-board analysis. Java 11, Swing, Unsplash and JSON. This is a standalone module/panel because the repository had no application code at implementation time. It does not implement accounts, pin CRUD, board CRUD or profiles owned by teammates.
+Implements README stories 2 (search/browse) and 3 (recommendations), plus Taste Mixer, group ranking and preference-board analysis. Java 17, Swing, Unsplash and JSON. This is a standalone module/panel because the repository had no application code at implementation time. It does not implement accounts, pin CRUD, board CRUD or profiles owned by teammates.
 
 The complete baseline workflow runs with an Unsplash access key. The optional CLIP adapter compiles and its preprocessing is unit tested; pretrained model export/inference and live Unsplash access still need the manual checks below. Colour mode is a real visual histogram, not semantic CLIP. Never describe the baseline as recognizing room styles or objects.
 
 ## Run in VS Code (Windows PowerShell)
 
-Install a JDK 11 or 17, Maven, and VS Code's Extension Pack for Java. Open the repository folder. In its terminal:
+Install JDK 17, Maven, and VS Code's Extension Pack for Java. Open the repository folder. In its terminal:
 
 ```powershell
 mvn test
 $env:UNSPLASH_ACCESS_KEY = "your-own-Unsplash-access-key"
-mvn exec:java
+mvn compile exec:java
 ```
 
 Use an Unsplash **Access Key**, not its Secret Key. Never commit either. Restart the app after changing environment variables. For macOS/Linux use `export UNSPLASH_ACCESS_KEY='...'` and the same Maven commands.
@@ -30,7 +30,7 @@ The app starts in `rgb-histogram-64-v1` mode unless `CLIP_MODEL_PATH` is set. JS
 6. Show A or Show B to inspect persistence, or remove samples. Restart and show the same ID to verify reload.
 7. Analyze A after adding at least two samples. Lowest cosine similarity to the centroid is first; these are potential outliers, not automatically incorrect pins. A two-image board will normally tie.
 
-Ranking operates on the most recently searched **page of 20 candidates**, not all of Unsplash. A new keyword in the text field only takes effect when Search is clicked. An empty result may mean all candidates were already liked. There is no fabricated personalized cold start: empty preference collections produce an actionable message. Image/embedding failure fails ranking instead of silently ranking an incomplete candidate set. Individual thumbnail failure retains attribution and displays “Preview unavailable”.
+Ranking operates on the most recently searched **page of 20 candidates**, not all of Unsplash. A new keyword in the text field only takes effect when Search is clicked. An empty result may mean all candidates were already liked. If a search fails or returns no images, recommendation actions ask you to search again instead of using a previous search. There is no fabricated personalized cold start: empty preference collections produce an actionable message. Image/embedding failure fails ranking instead of silently ranking an incomplete candidate set. Individual thumbnail failure retains attribution and displays “Preview unavailable”.
 
 ## Optional semantic CLIP
 
@@ -42,7 +42,7 @@ python -m venv .venv-clip
 pip install -r scripts/clip-requirements.txt
 python scripts/export_clip.py
 $env:CLIP_MODEL_PATH = (Resolve-Path models/clip-vit-b32-image.onnx).Path
-mvn exec:java
+mvn compile exec:java
 ```
 
 The exporter produces the **projected image features** of OpenAI CLIP ViT-B/32. The Java adapter expects one float input `pixel_values` of shape `[1,3,224,224]` and a float output `image_embeds` of shape `[1,512]`. It rejects full image+text graphs or incompatible exports. Do not use arbitrary ONNX models with this adapter.
@@ -56,14 +56,14 @@ References: [ONNX Java](https://onnxruntime.ai/docs/get-started/with-java.html),
 | Layer | Main types | Responsibility |
 |---|---|---|
 | Entities | `Photo`, `FeatureVector`, `ScoredPhoto` | Immutable source metadata, validated vector math, ranked result |
-| Use cases | `DiscoveryService` | Search validation, preference aggregation, ranking, mixing, group scores, analysis |
+| Use cases | `DiscoveryInputBoundary`, `DiscoveryService` | Search validation, preference aggregation, ranking, mixing, group scores, analysis |
 | Ports | `ImageCatalog`, `EmbeddingProvider`, `PreferenceStore` | Abstract external search, image encoding and preference persistence |
 | Adapters | `UnsplashCatalog`, `JsonPreferenceStore`, embedding providers | HTTP/JSON/model infrastructure |
 | UI adapter | `DiscoveryController`, `Card` | Background execution, presentation models, success/error status |
 | View | `DiscoveryView` | Swing input and image grid; no HTTP, JSON or vector calculations |
 | Composition | `DiscoveryApplication` | Chooses adapters and wires dependencies |
 
-Dependency inversion: the service owns its interfaces and knows nothing about Gson, ONNX or Swing. Strategy: colour and CLIP providers implement the same interface. Decorator: `CachedEmbeddingProvider` adds bounded caching without changing either provider. The controller uses a view boundary, allowing a fake view in tests. Swing widgets remain in the outer layer.
+Dependency inversion: the service owns its interfaces and knows nothing about Gson, ONNX or Swing. Strategy: colour and CLIP providers implement the same interface. Decorator: `CachedEmbeddingProvider` adds bounded caching without changing either provider. The controller depends on `DiscoveryInputBoundary`, which `DiscoveryService` implements, and uses a view boundary, allowing a fake view in tests. Swing widgets remain in the outer layer.
 
 Gabriel: supply stable namespaced board IDs (for example `user:42/board:17`) and implement `PreferenceStore` over your board/pin repositories, mapping pins to `Photo`. That adapter can expose actual board pins to the analyzer without copying board CRUD here. Alex: retain Unsplash metadata when saving a pin; use `ImageCatalog.trackSelection` for actual selections as appropriate, and do not double count if the action already passes through `DiscoveryService.like`. Matthew: supply the authenticated user's scoped IDs and enforce ownership in the adapter. The standalone demo's editable IDs are **not authentication**.
 
@@ -89,7 +89,7 @@ The baseline cannot understand semantic style. CLIP quality still needs evaluati
 
 ## Verification
 
-Run `mvn test` or `mvn verify`. Tests use generated images, fake gateways and a loopback HTTP server; no key, live network or pretrained model is required. They cover math, recommendation order, exclusions, weighting endpoints, group compromise, outliers, failed saves, JSON restart/corruption, Unsplash requests/errors/tracking, preprocessing and embedding caching. GitHub Actions runs Java 11 and 17.
+Run `mvn test` or `mvn verify`. Tests use generated images, fake gateways and a loopback HTTP server; no key, live network or pretrained model is required. They cover math, recommendation order, exclusions, weighting endpoints, group compromise, outliers, failed saves, JSON restart/corruption, Unsplash requests/errors/tracking, preprocessing and embedding caching. GitHub Actions runs Java 17.
 
 Manual checks before the team demo:
 - Start with a real key and verify thumbnails/attribution, orientation, latest order and page changes.
@@ -98,3 +98,19 @@ Manual checks before the team demo:
 - Try an empty preference ID and a bad key; check clear errors and responsive UI.
 - Export the optional CLIP model, run the same workflow, and verify the model label and plausible semantic ranking.
 - Integrate the panel with the team's actual board/pin adapters before calling this the complete group application.
+
+## Merge meeting checklist
+
+The original discovery PR #2 was merged into Gabriel's main on November 2. As checked on November 13, the published main branch contains the standalone discovery app, not the other members' account, board or pin implementations. This follow-up branch includes the existing Java 17 build and CI changes from Kevin's main.
+
+1. Use JDK 17 for Maven and the IDE. Run `mvn verify` after combining the branches.
+2. Agree on one shared application startup. Add `DiscoveryView` as a panel rather than starting a second application window.
+3. Matthew supplies the authenticated user. Gabriel supplies the selected board's stable ID. Replace editable demo IDs with board selections and enforce ownership in the persistence adapter.
+4. Gabriel and Alex connect `PreferenceStore.load` to the photos actually saved in that board. Agree on how `save` updates the board without losing pin titles, tags or other metadata. Do not blindly overwrite their JSON files with this demo store.
+5. Keep the Unsplash photo ID, image URL, photo page, photographer name and URL, and download tracking URL when converting between Pin and Photo. Track each selection once.
+6. Test the complete flow together: log in, create a board, search, save a pin, recommend, remove a pin, recommend again, restart and reopen the board. Confirm that another account cannot access the first user's private boards.
+7. Try a missing key, failed search, empty board, and unavailable image. The UI should report the failure and allow another action.
+
+The controller still handles background work and presentation formatting together. A separate presenter and view model are a useful later refactor if required by the team's course architecture template; the current change adds the input boundary without reorganizing everyone's UI before integration.
+
+Automated tests do not establish recommendation quality or exercise a real Unsplash key and pretrained CLIP model. Run the live workflow on the demo computer with its existing model and key before the presentation. CLIP files, credentials and saved demo preferences are not included in Git.
