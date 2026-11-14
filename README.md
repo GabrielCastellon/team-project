@@ -67,6 +67,31 @@ For example, a board titled "Japanese Architecture" could contain pins featuring
 ### 6. Profile Customization
 Users can customize their profiles through features such as display names, biographies, avatars, banners, themes, fonts, and appearance settings.
 
+## Domain Entities
+
+These classes are part of the discovery module currently on the team branch. Add the team's account, board, and pin entities here once their class definitions are confirmed.
+
+### Photo
+
+Represents an image from Unsplash and the information needed to display and credit it.
+
+* Fields (all String): `id`, `description`, `imageUrl`, `pageUrl`, `photographer`, `photographerUrl`, and `downloadUrl`.
+* Methods: `id()`, `description()`, `imageUrl()`, and `pageUrl()` return the image details. `photographer()` and `photographerUrl()` provide attribution. `downloadUrl()` returns the endpoint for tracking selection.
+
+### FeatureVector
+
+Stores the numerical features that the app uses to compare images.
+
+* Field: `values` is a `double[]` containing the normalized features.
+* Methods: `values()` returns a copy. `cosine(other)` compares two vectors, `mix(other, weight)` blends two vectors, and the static method `average(vectors)` combines a collection of vectors into one.
+
+### ScoredPhoto
+
+Pairs a photo with the similarity score used to rank it.
+
+* Fields: `photo` is a `Photo`, and `score` is a `double`.
+* Methods: `photo()` and `score()` return the photo and its score.
+
 ## APIs
 
 ### Unsplash API
