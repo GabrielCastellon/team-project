@@ -39,14 +39,14 @@ Users can register, log in, and access their saved boards and preferences throug
 ### 2. Image Search and Browsing
 Users can search for images using keywords, such as "Japanese interior design." Search results are retrieved from the Unsplash API and displayed in an image grid.
 
-The application also aims to support filtering and sorting images by categories, relevance, date, and popularity where supported.
+The standalone discovery app supports pagination, orientation filters, and sorting by relevance or newest first.
 
 ### 3. Personalized Recommendations
 The application will recommend images based on the visual characteristics of pins saved to a particular board.
 
 Image features will be represented as numerical vectors, and cosine similarity will be used to rank candidate images based on their similarity to a board's preferences.
 
-A potential additional feature is a **Taste Mixer**, allowing users to blend preferences between two boards or users using a slider.
+The standalone discovery app includes Taste Mixer, which blends two saved preferences using a slider. It also includes group recommendations and board analysis. These features currently use demo preferences. Connecting them to the team’s accounts and saved pins is still pending.
 
 ### 4. Pin Management
 Users can create, view, and edit pins. Each pin contains information such as:
@@ -104,7 +104,7 @@ The API provides image metadata, including:
 | JSON | Local storage of user, board, and pin data |
 | JUnit | Unit testing |
 | Git & GitHub | Version control and team collaboration |
-| Image Embedding Model (TBD) | Feature extraction for personalized recommendations |
+| RGB histogram or optional CLIP with ONNX Runtime | Represents images as vectors for recommendations |
 
 ## Data Storage
 
