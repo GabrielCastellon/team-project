@@ -102,7 +102,7 @@ classDiagram
         +photo() Photo
         +score() double
     }
-    ScoredPhoto --> Photo : holds
+    ScoredPhoto --> "1" Photo : holds
 ```
 
 ### Photo
@@ -125,6 +125,35 @@ Pairs a photo with the similarity score used to rank it.
 
 * Fields: `photo` is a `Photo`, and `score` is a `double`.
 * Methods: `photo()` and `score()` return the photo and its score.
+
+## Image Search Sequence
+
+The search runs in the background so the Swing window stays responsive.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant View as DiscoveryView
+    participant Ctrl as DiscoveryController
+    participant Service as DiscoveryService
+    participant Catalog as UnsplashCatalog
+    User->>View: Click Search
+    View->>Ctrl: Send query, page, orientation and order
+    Ctrl->>View: Show working status
+    Ctrl->>Service: Search in the background
+    Service->>Service: Validate inputs
+    alt Search succeeds
+        Service->>Catalog: Search Unsplash
+        Catalog-->>Service: Return matching photos
+        Service-->>Ctrl: Return photos
+        Ctrl->>Ctrl: Load previews and keep candidates
+        Ctrl->>View: Display photo cards
+    else Validation or search fails
+        Service-->>Ctrl: Report the error
+        Ctrl->>View: Show the error message
+    end
+    Ctrl->>View: Enable controls again
+```
 
 ## APIs
 
