@@ -92,9 +92,9 @@ classDiagram
     class FeatureVector {
         -double[] values
         +values() double[]
-        +cosine(other) double
-        +mix(other, weight) FeatureVector
-        +average(vectors) FeatureVector$
+        +cosine(FeatureVector other) double
+        +mix(FeatureVector other, double weight) FeatureVector
+        +average(Collection~FeatureVector~ vectors) FeatureVector$
     }
     class ScoredPhoto {
         -Photo photo
@@ -142,16 +142,23 @@ sequenceDiagram
     View->>Controller: search(query, page, orientation, order)
     Controller->>View: Disable controls and show working status
     Note over Controller,UseCase: SwingWorker runs the search off the UI thread
-    Controller->>UseCase: Validate and search
-    alt Search succeeds
-        UseCase->>Catalog: Request matching photos
-        Catalog-->>UseCase: Return photos
-        UseCase-->>Controller: Return search results
-        Controller->>Controller: Build cards with previews and save candidates
-        Controller->>View: Show results on the UI thread
-    else Invalid inputs or request fails
-        UseCase-->>Controller: Return a failure
+    Controller->>UseCase: search(query, page, orientation, order)
+    UseCase->>UseCase: Validate inputs
+    alt Invalid inputs
+        UseCase-->>Controller: Throw validation error
         Controller->>View: Show the error on the UI thread
+    else Valid inputs
+        UseCase->>Catalog: Search Unsplash
+        alt Unsplash request succeeds
+            Catalog-->>UseCase: Return photos
+            UseCase-->>Controller: Return photos
+            Controller->>Controller: Build cards and keep search results
+            Controller->>View: Show results or No images on the UI thread
+        else Unsplash request fails
+            Catalog-->>UseCase: Throw request error
+            UseCase-->>Controller: Propagate the error
+            Controller->>View: Show the error on the UI thread
+        end
     end
     Controller->>View: Enable controls
 ```
