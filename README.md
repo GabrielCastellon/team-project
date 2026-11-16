@@ -92,9 +92,9 @@ classDiagram
     class FeatureVector {
         -double[] values
         +values() double[]
-        +cosine(FeatureVector other) double
-        +mix(FeatureVector other, double weight) FeatureVector
-        +average(Collection~FeatureVector~ vectors) FeatureVector$
+        +cosine(other) double
+        +mix(other, weight) FeatureVector
+        +average(vectors) FeatureVector$
     }
     class ScoredPhoto {
         -Photo photo
@@ -102,7 +102,7 @@ classDiagram
         +photo() Photo
         +score() double
     }
-    ScoredPhoto --> "1" Photo : holds
+    ScoredPhoto --> "1" Photo : wraps
 ```
 
 ### Photo
@@ -134,25 +134,26 @@ The search runs in the background so the Swing window stays responsive.
 sequenceDiagram
     actor User
     participant View as DiscoveryView
-    participant Ctrl as DiscoveryController
-    participant Service as DiscoveryService
+    participant Controller as DiscoveryController
+    participant UseCase as DiscoveryService
     participant Catalog as UnsplashCatalog
+
     User->>View: Click Search
-    View->>Ctrl: Send query, page, orientation and order
-    Ctrl->>View: Show working status
-    Ctrl->>Service: Search in the background
-    Service->>Service: Validate inputs
+    View->>Controller: search(query, page, orientation, order)
+    Controller->>View: Disable controls and show working status
+    Note over Controller,UseCase: SwingWorker runs the search off the UI thread
+    Controller->>UseCase: Validate and search
     alt Search succeeds
-        Service->>Catalog: Search Unsplash
-        Catalog-->>Service: Return matching photos
-        Service-->>Ctrl: Return photos
-        Ctrl->>Ctrl: Load previews and keep candidates
-        Ctrl->>View: Display photo cards
-    else Validation or search fails
-        Service-->>Ctrl: Report the error
-        Ctrl->>View: Show the error message
+        UseCase->>Catalog: Request matching photos
+        Catalog-->>UseCase: Return photos
+        UseCase-->>Controller: Return search results
+        Controller->>Controller: Build cards with previews and save candidates
+        Controller->>View: Show results on the UI thread
+    else Invalid inputs or request fails
+        UseCase-->>Controller: Return a failure
+        Controller->>View: Show the error on the UI thread
     end
-    Ctrl->>View: Enable controls again
+    Controller->>View: Enable controls
 ```
 
 ## APIs
