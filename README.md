@@ -71,6 +71,40 @@ Users can customize their profiles through features such as display names, biogr
 
 These classes are part of the discovery module currently on the team branch. Add the team's account, board, and pin entities here once their class definitions are confirmed.
 
+```mermaid
+classDiagram
+    class Photo {
+        -String id
+        -String description
+        -String imageUrl
+        -String pageUrl
+        -String photographer
+        -String photographerUrl
+        -String downloadUrl
+        +id() String
+        +description() String
+        +imageUrl() String
+        +pageUrl() String
+        +photographer() String
+        +photographerUrl() String
+        +downloadUrl() String
+    }
+    class FeatureVector {
+        -double[] values
+        +values() double[]
+        +cosine(FeatureVector other) double
+        +mix(FeatureVector other, double weight) FeatureVector
+        +average(Collection~FeatureVector~ vectors) FeatureVector$
+    }
+    class ScoredPhoto {
+        -Photo photo
+        -double score
+        +photo() Photo
+        +score() double
+    }
+    ScoredPhoto --> Photo : holds
+```
+
 ### Photo
 
 Represents an image from Unsplash and the information needed to display and credit it.
