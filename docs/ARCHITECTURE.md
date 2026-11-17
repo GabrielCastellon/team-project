@@ -76,3 +76,7 @@ The proxy is a concrete team-authored implementation, not just a reference to Sw
 Reference: [Proxy pattern / virtual proxy](https://refactoring.guru/design-patterns/proxy). **Confirm against your actual lecture material whether Proxy was taught** before claiming it as a pattern not presented in class. The supplied rubric does not list the taught patterns. Kevin's existing embedding cache also demonstrates Decorator; confirm its classroom status separately.
 
 KISS is an additional principle: use a plain map of panel factories and feature-owned interfaces rather than a plugin framework or universal repository. It is not a substitute for the rubric's design-pattern criterion.
+
+## Concrete discovery evidence
+
+See [discovery UML](DISCOVERY_DESIGN.md) for actual classes/interfaces and search/startup flow, and [verification](VERIFICATION.md) for the integration tests. The public application factory uses DiscoveryModule by default; a package-private supplier/configuration seam makes the same composition testable with fixture configuration, without changing machine credentials or connecting to Unsplash. The service algorithms and other owners' features are unchanged.

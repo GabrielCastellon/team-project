@@ -36,7 +36,7 @@ Kieran should own a distinct complete profile use case; coordinate the overlap w
 
 ## Entities
 
-Planned shared concepts are User (stable identity), Profile (display/appearance), Pin (image metadata), and Board (owner and pin references). Their owners must agree on fields, invariants and relationships before adding shared Java classes. The foundation deliberately contains no invented implementations. Kevin's discovery PR supplies the existing Photo, FeatureVector and ScoredPhoto value types and documents their [actual fields, methods and search sequence](docs/DISCOVERY_DESIGN.md).
+Planned shared concepts are User (stable identity), Profile (display/appearance), Pin (image metadata), and Board (owner and pin references). Their owners must agree on fields, invariants and relationships before adding shared Java classes. The foundation deliberately contains no invented implementations. Kevin's discovery PR supplies the existing Photo, FeatureVector and ScoredPhoto value types and documents their [use-case class diagrams, search sequences, skeleton startup and entities](docs/DISCOVERY_DESIGN.md).
 
 ## API and persistence
 
@@ -72,3 +72,7 @@ See [discovery setup, limitations, math and integration](docs/KEVIN_DISCOVERY.md
 ## Migration tracking
 
 Original team main is preserved on the **kevin_working** branch. [Issue #9](https://github.com/GabrielCastellon/team-project/issues/9) tracks the foundation and the separate discovery review. Existing branches remain intact. Teammates should branch from the new shared main; Kevin's discovery code returns only through a teammate-reviewed PR.
+
+## Integration verification
+
+[Verification and rubric evidence](docs/VERIFICATION.md) records the 32-test suite, real-module shell tests, dependency/style checks and remaining manual demo checks. The active feature is built on the skeleton through app.Main and ApplicationFactory; kevin_working is only the historical backup and is not used at runtime. [The UML guide](docs/DISCOVERY_DESIGN.md) separates per-use-case class diagrams from interaction-specific sequences.

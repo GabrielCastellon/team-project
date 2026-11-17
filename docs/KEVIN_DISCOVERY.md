@@ -120,3 +120,7 @@ Automated tests do not establish recommendation quality or exercise a real Unspl
 `app.Main` starts the shared shell; `DiscoveryModule` wires this feature when its tab is opened. No `DiscoveryApplication` standalone entry point is restored. `DiscoveryPresenter` now owns cards, score formatting, thumbnail preparation and the UI-facing View boundary; the controller still runs operations in SwingWorker and publishes results on the EDT. Existing interactor algorithms, API/persistence adapters and entities are preserved.
 
 Use-case response data returns synchronously through the input boundary, then the presenter maps it for display. This is an explicit variation from an interactor invoking an output-boundary callback, not a claim that the latter exists. Construction of optional CLIP resources still happens when opening the tab and can pause that initial activation; search, thumbnail work and inference during actions run in the background.
+
+## UML and shell verification
+
+[Discovery UML](DISCOVERY_DESIGN.md) includes the use-case class diagram, success/failure search sequences, startup integration, embedding/persistence dependencies and entity detail. [Verification](VERIFICATION.md) maps the 32-test suite to the rubric, including real DiscoveryModule construction through the skeleton. Class diagrams describe types and dependencies; sequence diagrams show only participants in the selected scenario.

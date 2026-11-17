@@ -1,25 +1,24 @@
-Tracking issue: https://github.com/GabrielCastellon/team-project/issues/9
+# Migration status — issue #9
 
-# Shared Swing foundation and Kevin discovery migration
+Canonical tracking issue: https://github.com/GabrielCastellon/team-project/issues/9
+Canonical discovery review: https://github.com/GabrielCastellon/team-project/pull/10
 
-## Goal
-Give teammates a minimal Java 17 / Swing foundation for their own use cases while preserving Kevin's existing code and all Git history.
+## Completed
 
-## Acceptance criteria
-- [x] Preserve current team main (`1cdd12d817b281ba80dbe2d84c8cc379e8a27f1a`) as `kevin_working`, and verify the remote backup before updating main.
-- [ ] Publish the shared foundation on main as a normal descendant commit; retain the team contract and history.
-- [ ] Include runnable Swing placeholders, inward dependency checks, targeted Checkstyle, Java 17 CI, ownership/use-case documentation and review guidance.
-- [ ] Publish Kevin's discovery integration on a separate feature branch and open a PR against the skeleton main.
-- [ ] A teammate reviews and merges Kevin's PR; the assistant must not merge it or enable auto-merge.
+- [x] Back up original team main as `kevin_working` at `1cdd12d817b281ba80dbe2d84c8cc379e8a27f1a` and verify it remotely.
+- [x] Publish the shared skeleton first on main at `01a32869d53ef368c899fb44600ad0a95b52b528`, retaining all history and the team contract.
+- [x] Build Kevin's work on a descendant feature branch and open PR #10 against skeleton main.
+- [x] Keep the existing `kevin/java17-demo` branch intact; no branch deletion or renaming was needed.
+- [x] Include ownership/use-case specs, Clean Architecture rules, Checkstyle, CI, contribution guidance and rubric evidence.
+- [x] Expand UML beyond entities: actual use-case class diagram, search success/failure, skeleton startup and embedding/persistence dependencies.
+- [x] Add real-module shell integration checks and verify the source export without Git metadata or the backup branch.
+- [x] Request GabrielCastellon's review.
+- [ ] A teammate completes review and merges PR #10 after any requested changes. The assistant has not merged it or enabled auto-merge.
 
-## Ownership
-Matthew: accounts; Kevin: discovery/recommendations; Alex: pins; Gabriel: boards; Kieran coordinating with Matthew: profile/appearance. Teammates implement their own complete use cases; this migration leaves their features as placeholders.
+## Scope and evidence
 
-## Design and rubric evidence
-The shell implements Virtual Proxy through LazyPanel; confirm it was not presented in class before claiming the rubric's Exceptional design criterion. KISS is an additional principle, not a replacement for the design-pattern criterion. Checkstyle runs under `mvn verify` alongside tests and architecture checks.
+Java 17 `mvn verify` passes with 32 tests and zero Checkstyle violations. Diagram syntax is checked with Mermaid. See [verification](VERIFICATION.md) for the test evidence and remaining manual demo checks.
 
-## Validation
-The previously prepared foundation passed 4 tests and Checkstyle; integrated discovery passed 30 tests and Checkstyle on Java 17, including GitHub CI in Kevin's fork. The final team-repo commits will be checked again. Offline fixtures do not prove live Unsplash credentials, real optional CLIP inference, or the full interactive GUI workflow.
+`kevin_working` is a historical backup, not a runtime dependency. The active feature starts from `app.Main`, uses the shared shell and mounts Discovery through its lazy factory. The original algorithms, entities and data adapters are retained. Other teammates' accounts, pins, boards and profiles remain placeholders for their owners.
 
-## Branch naming
-Use `kevin_working` as Kevin requested. Existing `kevin/java17-demo` remains untouched; no branch renaming or deletion is required.
+The supplied rubric's Exceptional design criterion requires a pattern not presented in class. Virtual Proxy, Decorator and Strategy are implemented, but lecture coverage must be checked before claiming that criterion. Live Unsplash credentials, real optional CLIP inference and the full team demo still require manual verification. No completed human review or teammate feature is claimed here.

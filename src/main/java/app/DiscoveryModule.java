@@ -11,6 +11,7 @@ import use_case.discovery.DiscoveryService;
 import use_case.discovery.EmbeddingProvider;
 import view.DiscoveryView;
 import java.nio.file.Path;
+import java.util.Map;
 import javax.swing.JPanel;
 
 /** Wires Kevin's module only; the shell remains usable without discovery configuration. */
@@ -18,12 +19,17 @@ public final class DiscoveryModule {
     private DiscoveryModule() { }
 
     public static JPanel createPanel() {
+        return createPanel(System.getenv());
+    }
+
+    // Explicit configuration keeps composition tests independent of machine credentials.
+    static JPanel createPanel(Map<String, String> configuration) {
         ClipEmbeddingProvider clip = null;
         try {
             // Validate required configuration before allocating optional model resources.
-            UnsplashCatalog catalog = new UnsplashCatalog(System.getenv("UNSPLASH_ACCESS_KEY"));
+            UnsplashCatalog catalog = new UnsplashCatalog(configuration.get("UNSPLASH_ACCESS_KEY"));
             ImageLoader images = new ImageLoader();
-            String modelPath = System.getenv("CLIP_MODEL_PATH");
+            String modelPath = configuration.get("CLIP_MODEL_PATH");
             EmbeddingProvider provider;
             if (modelPath == null || modelPath.isBlank()) {
                 provider = new ColorEmbeddingProvider(images);
@@ -32,7 +38,7 @@ public final class DiscoveryModule {
                 provider = clip;
             }
             EmbeddingProvider embeddings = new CachedEmbeddingProvider(provider);
-            String directory = System.getenv()
+            String directory = configuration
                     .getOrDefault("DISCOVERY_DATA_DIR", "data/discovery-preferences");
             DiscoveryService service = new DiscoveryService(
                     catalog, embeddings, new JsonPreferenceStore(Path.of(directory)));
