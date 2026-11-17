@@ -12,7 +12,7 @@ public final class ApplicationFactory {
     public MainView createView() {
         Map<String, Supplier<JPanel>> features = new LinkedHashMap<>();
         features.put("Accounts", () -> new PlaceholderView("Accounts", "Matthew"));
-        features.put("Discovery", () -> new PlaceholderView("Discovery", "Kevin"));
+        features.put("Discovery", DiscoveryModule::createPanel);
         features.put("Pins", () -> new PlaceholderView("Pins", "Alex"));
         features.put("Boards", () -> new PlaceholderView("Boards", "Gabriel"));
         features.put("Profile", () -> new PlaceholderView("Profile", "Kieran and Matthew"));
