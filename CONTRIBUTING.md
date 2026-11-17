@@ -17,4 +17,4 @@ See [architecture](docs/ARCHITECTURE.md) for dependency rules and the feature ch
 
 Never commit API keys, local data, model files, or passwords. Live API checks use each developer's own environment variables. Record successful API calls and save/reload demonstrations honestly in your feature documentation.
 
-After the foundation lands, teammates with older branches should create a new branch from main and bring over only their feature files/commits. A plain merge of an old branch can restore removed standalone files. The `kevin` backup is historical reference, not a branch to merge into main.
+After the foundation lands, teammates with older branches should create a new branch from main and bring over only their feature files/commits. A plain merge of an old branch can restore removed standalone files. The `kevin_working` backup is historical reference, not a branch to merge into main.
