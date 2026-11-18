@@ -13,7 +13,7 @@ flowchart TD
     UC --> E[entity: domain objects]
 ```
 
-An arrow means a source-code dependency, not runtime call direction. The shell currently instantiates only views. Other layers are package documentation until feature owners add their implementations. ArchUnit allows empty inner packages intentionally at this stage and enforces their dependency rules once classes exist. This is not evidence that unimplemented features follow Clean Architecture.
+An arrow means a source-code dependency, not runtime call direction. The shell wires Kevin’s discovery module through its lazy feature factory; other features remain placeholders. ArchUnit allows empty inner packages intentionally at this stage and enforces their dependency rules once classes exist. This is not evidence that unimplemented features follow Clean Architecture.
 
 - `entity`: domain objects and invariants; JDK/domain types only. No Swing, HTTP, Gson, ONNX or repositories.
 - `use_case/<feature>`: input boundary, request/response data, interactor, output boundary and small gateway interfaces. Dependencies only on this layer, entities and the JDK. Keep framework-specific details outside.
@@ -22,7 +22,7 @@ An arrow means a source-code dependency, not runtime call direction. The shell c
 - `view`: display state and forward events to controllers. No direct calls to interactors, HTTP or repositories. A feature may use SwingWorker here or in its UI adapter to keep I/O off the EDT.
 - `app`: choose concrete dependencies and wire them together. Only this layer should know the entire object graph.
 
-A use case may return response data through its input boundary in a synchronous design, but the UI adapter must still keep presentation out of the interactor. Prefer the course output-boundary/presenter structure for new features. Kevin's existing module has an inline presentation adapter in its controller; it must be described as that tradeoff, not as a separate presenter that does not exist.
+A use case may return response data through its input boundary in a synchronous design, but the UI adapter must still keep presentation out of the interactor. Prefer the course output-boundary/presenter structure for new features. Discovery uses synchronous response data through DiscoveryInputBoundary and a separate DiscoveryPresenter in the UI adapter. It does not claim a course-style output-boundary callback from the interactor; that is an explicit tradeoff preserved to keep existing business behavior stable.
 
 ## One feature at a time
 
@@ -76,3 +76,7 @@ The proxy is a concrete team-authored implementation, not just a reference to Sw
 Reference: [Proxy pattern / virtual proxy](https://refactoring.guru/design-patterns/proxy). **Confirm against your actual lecture material whether Proxy was taught** before claiming it as a pattern not presented in class. The supplied rubric does not list the taught patterns. Kevin's existing embedding cache also demonstrates Decorator; confirm its classroom status separately.
 
 KISS is an additional principle: use a plain map of panel factories and feature-owned interfaces rather than a plugin framework or universal repository. It is not a substitute for the rubric's design-pattern criterion.
+
+## Concrete discovery evidence
+
+See [discovery UML](DISCOVERY_DESIGN.md) for actual classes/interfaces and search/startup flow, and [verification](VERIFICATION.md) for the integration tests. The public application factory uses DiscoveryModule by default; a package-private supplier/configuration seam makes the same composition testable with fixture configuration, without changing machine credentials or connecting to Unsplash. The service algorithms and other owners' features are unchanged.

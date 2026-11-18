@@ -8,7 +8,7 @@ The planned application lets people discover images, save pins to boards, and ge
 
 ## Current status
 
-This branch is the **shared foundation**: a runnable Java 17 Swing window with Accounts, Discovery, Pins, Boards and Profile placeholders. It implements navigation, not the team's business use cases. It starts without API keys or local data. Kevin's previous discovery module is preserved in Git history and the migration backup, and is to return through a separate teammate-reviewed PR after this foundation. No API or persistence requirement is satisfied by placeholders.
+The application uses the **shared foundation**: a runnable Java 17 Swing window with Accounts, Pins, Boards and Profile placeholders plus Kevin’s Discovery panel. Kevin’s discovery implementation is proposed here for teammate review; the other owners’ features remain pending. It starts without API keys or local data. Kevin’s previous discovery module is preserved in Git history and the migration backup; this feature branch restores it on the foundation. Discovery uses Unsplash and JSON preference snapshots; placeholders do not implement API or persistence behavior.
 
 ## User stories and ownership
 
@@ -26,8 +26,8 @@ This branch is the **shared foundation**: a runnable Java 17 Swing window with A
 | Lead | MVP use case | Observable goal | Foundation status |
 |---|---|---|---|
 | Matthew | Register / log in | Access collections associated with the signed-in account | Placeholder |
-| Kevin | Search / browse images | Enter terms, view credited results, browse pages | Separate discovery PR |
-| Kevin | Recommend images | Rank candidates against saved preference samples | Separate discovery PR |
+| Kevin | Search / browse images | Enter terms, view credited results, browse pages | Implemented on this feature branch |
+| Kevin | Recommend images | Rank candidates against saved preference samples | Implemented on this feature branch |
 | Alex | Manage pins | Create, view and edit saved image details | Placeholder |
 | Gabriel | Manage boards | Create, view, rename and delete image collections | Placeholder |
 | Kieran, coordinating with Matthew | Customize profile | Edit personal display and appearance settings | Placeholder |
@@ -36,11 +36,11 @@ Kieran should own a distinct complete profile use case; coordinate the overlap w
 
 ## Entities
 
-Planned shared concepts are User (stable identity), Profile (display/appearance), Pin (image metadata), and Board (owner and pin references). Their owners must agree on fields, invariants and relationships before adding shared Java classes. The foundation deliberately contains no invented implementations. Kevin's discovery PR supplies the existing Photo, FeatureVector and ScoredPhoto value types and documents their actual fields/methods separately.
+Planned shared concepts are User (stable identity), Profile (display/appearance), Pin (image metadata), and Board (owner and pin references). Their owners must agree on fields, invariants and relationships before adding shared Java classes. The foundation deliberately contains no invented implementations. Kevin's discovery PR supplies the existing Photo, FeatureVector and ScoredPhoto value types and documents their [use-case class diagrams, search sequences, skeleton startup and entities](docs/DISCOVERY_DESIGN.md).
 
 ## API and persistence
 
-Planned external API: [Unsplash](https://unsplash.com/documentation), for keyword search, result metadata, attribution and selection tracking. The foundation makes no API calls. Live access has **not been verified in this migration**. A developer with an access key must record the manual check in the feature PR.
+Planned external API: [Unsplash](https://unsplash.com/documentation), for keyword search, result metadata, attribution and selection tracking. The shell makes no API calls; opening Discovery constructs the Unsplash adapter. Search/selection actions make the requests. Live access has **not been verified in this migration**. A developer with an access key must record the manual check in the feature PR.
 
 Planned local JSON storage: accounts (Matthew), profiles (Kieran), pins (Alex) and boards (Gabriel). Filenames and cross-feature contracts remain to be agreed. Kevin's separate discovery module persists preference samples; they are not authenticated boards or accounts. Demonstrate saving, restarting and loading for the final presentation.
 
@@ -61,6 +61,18 @@ Tests run headlessly; the interactive app requires a graphical desktop. The firs
 
 [Rubric evidence plan](docs/RUBRIC_EVIDENCE.md) maps the supplied November 15 rubric to evidence the team still needs. A skeleton is preparation, not proof that the whole MVP is complete.
 
+## Kevin’s Discovery panel
+
+Set `UNSPLASH_ACCESS_KEY` to your own Unsplash Access Key before starting, then open the Discovery tab. With no key, the shell still starts and that tab shows a configuration error; other tabs remain usable. Restart after setting environment variables. Never commit keys.
+
+Search, like samples into preference A/B, rank the current candidate page, mix preferences, rank for a group, or analyze a sample collection. These are demo preference IDs, not authenticated accounts or real team boards. JSON snapshots live under `data/discovery-preferences/`; `DISCOVERY_DATA_DIR` overrides this path. Default embeddings are RGB histograms; optional CLIP requires a separately exported compatible model and `CLIP_MODEL_PATH`.
+
+See [discovery setup, limitations, math and integration](docs/KEVIN_DISCOVERY.md). Live Unsplash access and real optional CLIP inference remain unverified in this migration. A teammate must review and merge this PR.
+
 ## Migration tracking
 
 Original team main is preserved on the **kevin_working** branch. [Issue #9](https://github.com/GabrielCastellon/team-project/issues/9) tracks the foundation and the separate discovery review. Existing branches remain intact. Teammates should branch from the new shared main; Kevin's discovery code returns only through a teammate-reviewed PR.
+
+## Integration verification
+
+[Verification and rubric evidence](docs/VERIFICATION.md) records the 32-test suite, real-module shell tests, dependency/style checks and remaining manual demo checks. The active feature is built on the skeleton through app.Main and ApplicationFactory; kevin_working is only the historical backup and is not used at runtime. [The UML guide](docs/DISCOVERY_DESIGN.md) separates per-use-case class diagrams from interaction-specific sequences.

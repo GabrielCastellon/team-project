@@ -17,3 +17,7 @@ Sources: user-supplied `Project Rubric 2026 [Nov 15].pdf`, `CSC207 Project Rubri
 The skeleton is not a completed MVP. Do not claim rubric compliance solely because folders or tests exist. Checkstyle checks a small explicit baseline, not the complete course style standard. Offline fixtures do not prove real Unsplash credentials or optional CLIP model inference.
 
 Presentation checklist from the supplied template: introduce team/project, explain user stories/MVP, demo, API and persistence, architecture, SOLID/design pattern/extensibility, quality/review process, challenges/future work and references. Keep updating evidence as real feature PRs land.
+
+## Implemented discovery evidence
+
+PR #10 is based on the already published skeleton. [Discovery UML](DISCOVERY_DESIGN.md) now shows actual use-case classes, interface realizations, search success/failure and shell startup, rather than only entity classes. [Verification](VERIFICATION.md) links the 32 tests to code-quality, architecture, integration and API/persistence evidence. It distinguishes fixture checks from live/manual checks and records the synchronous response tradeoff. The backup branch is historical only; final human review and teammates' features are still outside this PR's completed work.
