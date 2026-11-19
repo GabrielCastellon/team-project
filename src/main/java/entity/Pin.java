@@ -2,18 +2,20 @@ package entity;
 
 import java.util.List;
 
+import java.util.Objects;
+
 public class Pin {
     private String description;
-    private Photo photo;
-    private String pinId;
-    private String ownerId;
+    private final Photo photo;
+    private final String pinId;
+    private final String ownerId;
     private String title;
     private List<String> tags;
 
     public Pin(String pinId, String ownerId, Photo photo){
-        this.pinId = pinId;
-        this.ownerId = ownerId;
-        this.photo = photo;
+        this.pinId = Objects.requireNonNull(pinId, "pinId is required.");
+        this.ownerId = Objects.requireNonNull(ownerId, "ownerId is required.");
+        this.photo = Objects.requireNonNull(photo, "photo is required.");
         this.title = "";
         this.description = "";
         this.tags = List.of();
