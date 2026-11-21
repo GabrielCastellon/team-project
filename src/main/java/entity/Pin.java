@@ -15,6 +15,8 @@ public class Pin {
     public Pin(String pinId, String ownerId, Photo photo){
         this.pinId = Objects.requireNonNull(pinId, "pinId is required.");
         this.ownerId = Objects.requireNonNull(ownerId, "ownerId is required.");
+        if (pinId.isBlank()){ throw new IllegalArgumentException("pinId must not be blank."); }
+        if (ownerId.isBlank()){ throw new IllegalArgumentException("ownerId must not be blank."); }
         this.photo = Objects.requireNonNull(photo, "photo is required.");
         this.title = "";
         this.description = "";
