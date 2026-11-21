@@ -69,6 +69,14 @@ Gabriel: supply stable namespaced board IDs (for example `user:42/board:17`) and
 
 To embed the panel, construct `DiscoveryView`, construct `DiscoveryController(service, imageLoader::load, view)`, call `view.setController(controller)`, then add the panel to the shared application (already wired through `app.DiscoveryModule`). Keep shared startup/account navigation in the team's composition root.
 
+## Design pattern: Decorator
+
+Recommendations, Taste Mixer, and board analysis can score the same images repeatedly. Computing an embedding again can mean another image load and another CLIP inference. `CachedEmbeddingProvider` wraps the selected CLIP or colour provider and implements the same `EmbeddingProvider` interface. The service calls that interface as usual. The wrapper returns a saved vector on a hit and delegates to the original provider on a miss.
+
+The cache holds up to 1,000 vectors per provider instance and evicts the least recently used vector. It keys entries by both photo ID and image URL so a changed URL triggers a fresh embedding. This adds caching in one place without changing the ranking logic or adding cache code to either embedding model.
+
+For the presentation: “The app often scores the same photo more than once. We use Decorator to add a cache around either embedding model. Discovery calls the same interface, but repeat requests reuse the vector instead of running the model again.” The tests show two requests for the same image make one model call, and that evicted images are recomputed.
+
 ## Math you should be able to explain
 
 Each embedding is unit length. A board/user preference is the normalized average of its sample embeddings, giving each image equal weight. Cosine is the dot product of unit vectors, in `[-1,1]` (colour histograms are nonnegative). It is a similarity score, not a probability or percentage accuracy.
