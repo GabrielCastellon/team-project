@@ -59,7 +59,7 @@ References: [ONNX Java](https://onnxruntime.ai/docs/get-started/with-java.html),
 | Use cases | `DiscoveryInputBoundary`, `DiscoveryService` | Search validation, preference aggregation, ranking, mixing, group scores, analysis |
 | Ports | `ImageCatalog`, `EmbeddingProvider`, `PreferenceStore` | Abstract external search, image encoding and preference persistence |
 | Adapters | `UnsplashCatalog`, `JsonPreferenceStore`, embedding providers | HTTP/JSON/model infrastructure |
-| UI adapter | `DiscoveryController`, `DiscoveryPresenter`, `Card` | Background execution, presentation models, success/error status |
+| UI adapter | `DiscoveryController`, `DiscoveryPresenter`, `Card` | Task coordination, presentation models, success/error status |
 | View | `DiscoveryView` | Swing input and image grid; no HTTP, JSON or vector calculations |
 | Composition | `Main`, `ApplicationFactory`, `DiscoveryModule` | Starts shell and wires feature adapters |
 
@@ -67,7 +67,7 @@ Dependency inversion: the service owns its interfaces and knows nothing about Gs
 
 Gabriel: supply stable namespaced board IDs (for example `user:42/board:17`) and implement `PreferenceStore` over your board/pin repositories, mapping pins to `Photo`. That adapter can expose actual board pins to the analyzer without copying board CRUD here. Alex: retain Unsplash metadata when saving a pin; use `ImageCatalog.trackSelection` for actual selections as appropriate, and do not double count if the action already passes through `DiscoveryService.like`. Matthew: supply the authenticated user's scoped IDs and enforce ownership in the adapter. The standalone demo's editable IDs are **not authentication**.
 
-To embed the panel, construct `DiscoveryView`, construct `DiscoveryController(service, imageLoader::load, view)`, call `view.setController(controller)`, then add the panel to the shared application (already wired through `app.DiscoveryModule`). Keep shared startup/account navigation in the team's composition root.
+To embed the panel, construct `DiscoveryView`, construct `DiscoveryController(service, imageLoader::load, view, new SwingTaskRunner<>())`, call `view.setController(controller)`, then add the panel to the shared application (already wired through `app.DiscoveryModule`). Keep shared startup/account navigation in the team's composition root.
 
 ## Math you should be able to explain
 
@@ -117,7 +117,7 @@ Automated tests do not establish recommendation quality or exercise a real Unspl
 
 ## Foundation migration
 
-`app.Main` starts the shared shell; `DiscoveryModule` wires this feature when its tab is opened. No `DiscoveryApplication` standalone entry point is restored. `DiscoveryPresenter` now owns cards, score formatting, thumbnail preparation and the UI-facing View boundary; the controller still runs operations in SwingWorker and publishes results on the EDT. Existing interactor algorithms, API/persistence adapters and entities are preserved.
+`app.Main` starts the shared shell; `DiscoveryModule` wires this feature when its tab is opened. No `DiscoveryApplication` standalone entry point is restored. `DiscoveryPresenter` now owns cards, score formatting, thumbnail preparation and the UI-facing View boundary; the controller schedules operations through `TaskRunner`. The view layer implements it with `SwingTaskRunner`, which runs operations off the EDT and delivers completion on the EDT. Existing interactor algorithms, API/persistence adapters and entities are preserved.
 
 Use-case response data returns synchronously through the input boundary, then the presenter maps it for display. This is an explicit variation from an interactor invoking an output-boundary callback, not a claim that the latter exists. Construction of optional CLIP resources still happens when opening the tab and can pause that initial activation; search, thumbnail work and inference during actions run in the background.
 
