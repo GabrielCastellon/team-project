@@ -20,11 +20,20 @@ public class SavePinInteractor implements SavePinInputBoundary {
         String ownerId = inputData.getOwnerId();
         String photoId = inputData.getPhoto().id();
 
-        //2A: lookup for existing saved pin
-        if (pinDataAccess.existsByOwnerAndPhotoId(ownerId, photoId)){
+        //2A: check whether this owner already saved the photo
+        boolean alreadySaved;
+        try {
+            alreadySaved = pinDataAccess.existsByOwnerAndPhotoId(ownerId, photoId);
+        } catch (IllegalStateException ex) {
+            outputBoundary.prepareFailView("Could not check whether the photo is already saved. " +
+                    "Please try again"); //failure lookup case
+            return;
+        }
+        if (alreadySaved) {
             outputBoundary.prepareAlreadySavedView(photoId);
             return;
-        } //else, 2B: create a pin for the first time
+        }
+        //else, 2B: create a pin for the first time
         //generate pinId
         String pinId = UUID.randomUUID().toString();
         //construct a new pin
@@ -34,7 +43,7 @@ public class SavePinInteractor implements SavePinInputBoundary {
             pinDataAccess.save(pin);
         } catch (IllegalStateException ex) {
             //4B: flag the failed storage attempt and finish the request
-            outputBoundary.prepareFailView("Cound not save the pin. Please try again.");
+            outputBoundary.prepareFailView("Could not save the pin. Please try again.");
             return;
         }
 

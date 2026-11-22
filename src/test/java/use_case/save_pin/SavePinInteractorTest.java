@@ -85,6 +85,28 @@ public class SavePinInteractorTest {
     }
 
 
+    //test storage lookup failure
+    @Test
+    void testLookupFailureSkipsSave() {
+        Photo photo = new Photo("121", "Orange Cat",
+                "image-url", "page-url",
+                "photographer", "profile-url", "download-url");
+        SavedPinDataAccess storage = new SavedPinDataAccess();
+        storage.alreadySaved = false;
+        storage.failOnLookup = true;
+        RecordOutputBoundary presenter = new RecordOutputBoundary();
+        SavePinInteractor interactor = new SavePinInteractor(storage, presenter);
+
+        interactor.execute(new SavePinInputData("123", photo));
+
+        assertEquals(0, storage.saveCalls);
+        assertNull(storage.savedPin);
+        assertNotNull(presenter.failureMessage);
+        assertFalse(presenter.failureMessage.isBlank());
+        assertNull(presenter.successData);
+        assertNull(presenter.savedPhotoId);
+    }
+
     private static class SavedPinDataAccess implements PinDataAccessInterface {
         private String checkOwnerId;
         private String checkPhotoId;
@@ -94,19 +116,25 @@ public class SavePinInteractorTest {
         private Pin savedPin;
         //part 4B: persistence failure
         private boolean failOnSave;
+        //case of storage failure due to bad read of saved pins
+        private boolean failOnLookup;
+
 
         //overriding fake DA method that interactor depends on automatically returns true
         @Override
         public boolean existsByOwnerAndPhotoId(String ownerId, String photoId){
             checkOwnerId = ownerId;
             checkPhotoId = photoId;
+            if (failOnLookup) {
+                throw new IllegalStateException("Simulated lookup failure");
+            }
             return alreadySaved;
         }
 
         @Override
         public void save(Pin pin){
             saveCalls++; //record save attempt count
-            if(failOnSave){
+            if(failOnSave) {
                 throw new IllegalStateException("Simulated write failure");
             }
             savedPin = pin;
