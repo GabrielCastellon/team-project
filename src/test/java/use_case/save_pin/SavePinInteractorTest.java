@@ -31,6 +31,8 @@ public class SavePinInteractorTest {
         assertEquals(0, storage.saveCalls);
         //Checks if presenter does not follow through with displaying successful save of duplicate
         assertNull(presenter.successData);
+        //part 4B: should not report storage failure in case of duplicate save request
+        assertNull(presenter.failureMessage);
     }
 
     //part 2B: testing first save request behavior
@@ -56,6 +58,30 @@ public class SavePinInteractorTest {
         assertEquals(photo.id(), presenter.successData.getPhotoId());
         assertEquals(storage.savedPin.getPinId(), presenter.successData.getPinId());
         assertNull(presenter.savedPhotoId); //prepareAlreadySavedView was never called
+        //part 4B: should not report storage failure in case of successful save
+        assertNull(presenter.failureMessage);
+    }
+
+    //part 4B: test case of persistence failure
+    @Test
+    void testSaveFailureBehavior() {
+        Photo photo = new Photo("121", "Orange Cat",
+                "image-url", "page-url",
+                "photographer", "profile-url", "download-url");
+        SavedPinDataAccess storage = new SavedPinDataAccess();
+        storage.alreadySaved = false;
+        storage.failOnSave = true;
+        RecordOutputBoundary presenter = new RecordOutputBoundary();
+        SavePinInteractor interactor = new SavePinInteractor(storage, presenter);
+
+        interactor.execute(new SavePinInputData("123", photo));
+
+        assertEquals(1, storage.saveCalls);
+        assertNull(storage.savedPin);
+        assertNotNull(presenter.failureMessage);
+        assertFalse(presenter.failureMessage.isBlank());
+        assertNull(presenter.successData);
+        assertNull(presenter.savedPhotoId);
     }
 
 
@@ -66,6 +92,8 @@ public class SavePinInteractorTest {
         //variables for testing save
         private boolean alreadySaved;
         private Pin savedPin;
+        //part 4B: persistence failure
+        private boolean failOnSave;
 
         //overriding fake DA method that interactor depends on automatically returns true
         @Override
@@ -77,8 +105,11 @@ public class SavePinInteractorTest {
 
         @Override
         public void save(Pin pin){
-            savedPin = pin; //record actual pin
-            saveCalls++; //record save count
+            saveCalls++; //record save attempt count
+            if(failOnSave){
+                throw new IllegalStateException("Simulated write failure");
+            }
+            savedPin = pin;
         }
     }
 
@@ -86,6 +117,8 @@ public class SavePinInteractorTest {
         private String savedPhotoId;
         //part 2D: test if fake presenter receives correct outputData from interactor
         private SavePinOutputData successData;
+        //part 4B: persistence failure output behavior
+        private String failureMessage;
 
         @Override
         public void prepareAlreadySavedView(String photoId) {
@@ -99,7 +132,7 @@ public class SavePinInteractorTest {
 
         @Override
         public void prepareFailView(String messsage) {
-            fail("A duplicate pin was reported as a storage failure");
+            failureMessage = messsage;
         }
     }
 }

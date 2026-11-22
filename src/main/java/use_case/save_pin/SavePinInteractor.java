@@ -30,7 +30,13 @@ public class SavePinInteractor implements SavePinInputBoundary {
         //construct a new pin
         Pin pin = new Pin(pinId, ownerId, inputData.getPhoto());
         //2C: interactor asks storage to save the newly created pin
-        pinDataAccess.save(pin); //hands Pin object to DA interface
+        try{
+            pinDataAccess.save(pin);
+        } catch (IllegalStateException ex) {
+            //4B: flag the failed storage attempt and finish the request
+            outputBoundary.prepareFailView("Cound not save the pin. Please try again.");
+            return;
+        }
 
         //2D: after save returns, report success to the output boundary with packaged outputData
         SavePinOutputData outputData = new SavePinOutputData(pinId, photoId);
