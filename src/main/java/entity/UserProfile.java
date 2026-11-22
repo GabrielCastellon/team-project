@@ -28,7 +28,11 @@ public final class UserProfile {
             String biography,
             String avatarPath,
             AppearanceSettings appearance) {
-        this.userId = Objects.requireNonNull(userId, "userId is required.");
+        Objects.requireNonNull(userId, "userId is required.");
+        if (userId.isBlank()) {
+            throw new IllegalArgumentException("userId is required.");
+        }
+        this.userId = userId;
         this.displayName = Objects.requireNonNull(displayName, "displayName is required.").trim();
         this.biography = biography == null ? "" : biography;
         this.avatarPath = avatarPath == null ? "" : avatarPath;
