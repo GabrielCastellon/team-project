@@ -25,4 +25,5 @@ public class Pin {
 
     public Photo getPhoto(){ return this.photo; }
     public String getDescription(){ return this.description; }
+    public String getPinId(){ return this.pinId; }
 }
