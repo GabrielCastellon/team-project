@@ -7,6 +7,7 @@ import data_access.ImageLoader;
 import data_access.JsonPreferenceStore;
 import data_access.UnsplashCatalog;
 import interface_adapter.discovery.DiscoveryController;
+import interface_adapter.save_pin.SavePinViewModel;
 import use_case.discovery.DiscoveryService;
 import use_case.discovery.EmbeddingProvider;
 import view.DiscoveryView;
@@ -42,7 +43,8 @@ public final class DiscoveryModule {
                     .getOrDefault("DISCOVERY_DATA_DIR", "data/discovery-preferences");
             DiscoveryService service = new DiscoveryService(
                     catalog, embeddings, new JsonPreferenceStore(Path.of(directory)));
-            DiscoveryView view = new DiscoveryView(embeddings.modelId());
+            SavePinViewModel savePinViewModel = new SavePinViewModel();
+            DiscoveryView view = new DiscoveryView(embeddings.modelId(), savePinViewModel);
             view.setController(new DiscoveryController(service, images::load, view));
             if (clip != null) {
                 ClipEmbeddingProvider ownedClip = clip;

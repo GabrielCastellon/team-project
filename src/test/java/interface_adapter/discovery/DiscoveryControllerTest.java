@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import entity.FeatureVector;
 import entity.Photo;
 
+import interface_adapter.save_pin.SavePinViewModel;
 import org.junit.jupiter.api.Test;
 
 import use_case.discovery.*;
@@ -179,7 +180,8 @@ class DiscoveryControllerTest {
     void swingPanelConstructsAndRendersHeadlessly() throws Exception {
         SwingUtilities.invokeAndWait(
                 () -> {
-                    DiscoveryView view = new DiscoveryView("test-model");
+                    DiscoveryView view = new DiscoveryView("test-model",
+                            new SavePinViewModel());
                     view.show(
                             List.of(
                                     new DiscoveryPresenter.Card(
