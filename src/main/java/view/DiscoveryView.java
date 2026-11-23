@@ -17,9 +17,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import interface_adapter.save_pin.SavePinState;
+import interface_adapter.save_pin.SavePinViewModel;
+import interface_adapter.save_pin.SavePinViewModelListener;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.swing.*;
 
-public final class DiscoveryView extends JPanel implements DiscoveryPresenter.View {
+public final class DiscoveryView extends JPanel implements DiscoveryPresenter.View,
+        SavePinViewModelListener {
 
     private final JTextField query = new JTextField("bedroom", 17);
 
@@ -47,8 +54,16 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
 
     private DiscoveryController controller;
 
-    public DiscoveryView(String model) {
+    private final SavePinViewModel savePinViewModel;
+
+    //given photo ID map to appropriate label on screen
+    private final Map<String, JLabel> saveLabels = new HashMap<>();
+
+    public DiscoveryView(String model, SavePinViewModel savePinViewModel) {
         super(new BorderLayout(10, 10));
+        this.savePinViewModel = savePinViewModel;
+        //let view read viewmodel and let viewmodel notify view
+        savePinViewModel.addListener(this);
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
         controls.add(new JLabel("Image discovery • " + model));
@@ -133,12 +148,27 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
     @Override
     public void show(List<Card> cards, String message) {
         grid.removeAll();
+        saveLabels.clear(); //handles updates to visible cards
         for (Card card : cards) {
             grid.add(card(card));
         }
         grid.revalidate();
         grid.repaint();
         status(message);
+    }
+
+    //Part 4A, 4B cases for view
+    @Override
+    public void stateChanged(){
+        SavePinState state = savePinViewModel.getState();
+        status(state.getMessage());
+
+        if(state.isSaved()){
+            JLabel label = saveLabels.get(state.getPhotoId());
+            if(label != null){
+                label.setText("Saved");
+            }
+        }
     }
 
     private JPanel card(Card card) {
@@ -168,6 +198,9 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
         description.setOpaque(false);
         panel.add(description);
         panel.add(new JLabel(card.score));
+        JLabel saveLabel = new JLabel();
+        saveLabels.put(card.photo.id(), saveLabel); //map stores label under photo ID
+        panel.add(saveLabel);
         JPanel links = row();
         links.add(
                 button(
