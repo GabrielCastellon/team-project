@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import view.DiscoveryView;
 import view.MainView;
 import view.PlaceholderView;
+import view.BoardsView;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Exercises the real module inside the shared shell without credentials or HTTP calls. */
@@ -41,7 +42,7 @@ class DiscoveryShellIntegrationTest {
             assertInstanceOf(DiscoveryView.class, discovery);
             assertEquals(1, initializations.get());
             tabs.setSelectedIndex(tabs.indexOfTab("Boards"));
-            assertInstanceOf(PlaceholderView.class, content(tabs));
+            assertInstanceOf(BoardsView.class, content(tabs));
             tabs.setSelectedIndex(tabs.indexOfTab("Discovery"));
             assertSame(discovery, content(tabs));
             assertEquals(1, initializations.get());

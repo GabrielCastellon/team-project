@@ -24,7 +24,7 @@ public final class ApplicationFactory {
         features.put("Accounts", () -> new PlaceholderView("Accounts", "Matthew"));
         features.put("Discovery", discoveryFactory);
         features.put("Pins", () -> new PlaceholderView("Pins", "Alex"));
-        features.put("Boards", () -> new PlaceholderView("Boards", "Gabriel"));
+        features.put("Boards", BoardsModule::createPanel);
         features.put("Profile", () -> new PlaceholderView("Profile", "Kieran and Matthew"));
         return new MainView(features);
     }
