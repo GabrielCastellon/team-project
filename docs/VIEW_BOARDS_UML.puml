@@ -1,0 +1,150 @@
+@startuml
+title Use Case 5.2 View Boards
+top to bottom direction
+skinparam linetype ortho
+skinparam nodesep 48
+skinparam ranksep 38
+hide empty members
+
+' Interface adapters
+class ViewBoardsController {
+    - inputBoundary: ViewBoardsInputBoundary
+    + execute(userId: String): void
+}
+
+class ViewBoardsPresenter {
+    - viewModel: BoardsViewModel
+    + prepareSuccessView(data: ViewBoardsOutputData): void
+    + prepareFailView(error: String): void
+}
+
+class BoardsViewModel <<DS>> {
+    - state: BoardsState
+    - listeners: List<BoardsViewModelListener>
+    + getState(): BoardsState
+    + setState(state: BoardsState): void
+    + addListener(listener: BoardsViewModelListener): void
+    + notifyStateChanged(): void
+}
+
+class BoardsState {
+    - boards: Map<String, String>
+    - errorMessage: String
+    + getBoards(): Map<String, String>
+    + addBoard(id: String, name: String): void
+    + setError(message: String): void
+}
+
+interface BoardsViewModelListener {
+    + stateChanged(): void
+}
+
+' Application business rules
+class ViewBoardsInputData <<DS>> {
+    - userId: String
+    + getUserId(): String
+}
+
+interface ViewBoardsInputBoundary {
+    + execute(data: ViewBoardsInputData): void
+}
+
+class ViewBoardsInteractor {
+    - boardDAO: ViewBoardsDataAccessInterface
+    - outputBoundary: ViewBoardsOutputBoundary
+    + execute(data: ViewBoardsInputData): void
+}
+
+interface ViewBoardsDataAccessInterface {
+    + findByUserId(userId: String): List<Board>
+}
+
+interface ViewBoardsOutputBoundary {
+    + prepareSuccessView(data: ViewBoardsOutputData): void
+    + prepareFailView(error: String): void
+}
+
+class ViewBoardsOutputData <<DS>> {
+    - boards: Map<String, String>
+    + getBoards(): Map<String, String>
+}
+
+' Existing entity
+class Board {
+    - id: String
+    - userId: String
+    - name: String
+    - pinIds: List<String>
+    + getId(): String
+    + getUserId(): String
+    + getName(): String
+    + getPinIds(): List<String>
+}
+
+' Frameworks and drivers
+class BoardsView {
+    - viewBoardsController: ViewBoardsController
+    - viewModel: BoardsViewModel
+    - currentUserId: String
+    + setCurrentUserId(userId: String): void
+    + onBoardsOpened(): void
+    + stateChanged(): void
+}
+
+class JsonBoardDataAccessObject {
+    - filePath: Path
+    + findByUserId(userId: String): List<Board>
+}
+
+class "boards.json" as File <<file>>
+
+' Layout only
+ViewBoardsController -[hidden]down-> ViewBoardsPresenter
+ViewBoardsPresenter -[hidden]down-> BoardsViewModel
+BoardsViewModel -[hidden]down-> BoardsViewModelListener
+BoardsViewModelListener -[hidden]down-> BoardsView
+
+ViewBoardsInputData -[hidden]down-> ViewBoardsInputBoundary
+ViewBoardsInputBoundary -[hidden]down-> ViewBoardsOutputBoundary
+ViewBoardsOutputBoundary -[hidden]down-> ViewBoardsOutputData
+ViewBoardsOutputData -[hidden]down-> BoardsState
+
+ViewBoardsInteractor -[hidden]down-> ViewBoardsDataAccessInterface
+ViewBoardsDataAccessInterface -[hidden]down-> JsonBoardDataAccessObject
+
+ViewBoardsController -[hidden]right-> ViewBoardsInputBoundary
+ViewBoardsInputBoundary -[hidden]right-> ViewBoardsInteractor
+ViewBoardsInteractor -[hidden]right-> Board
+ViewBoardsPresenter -[hidden]right-> ViewBoardsOutputBoundary
+BoardsViewModel -[hidden]right-> ViewBoardsOutputData
+ViewBoardsOutputData -[hidden]right-> ViewBoardsDataAccessInterface
+BoardsViewModelListener -[hidden]right-> BoardsState
+BoardsView -[hidden]right-> JsonBoardDataAccessObject
+JsonBoardDataAccessObject -[hidden]right-> File
+
+' View, controller, presenter, and listener
+BoardsView -[norank]-> ViewBoardsController
+BoardsView -[norank]-> BoardsViewModel
+BoardsView .[norank].|> BoardsViewModelListener
+BoardsViewModel -[norank]-> BoardsViewModelListener
+BoardsViewModel *-[norank]- BoardsState
+
+ViewBoardsController -[norank]-> ViewBoardsInputBoundary
+ViewBoardsController -[norank]-> ViewBoardsInputData
+ViewBoardsPresenter .[norank].|> ViewBoardsOutputBoundary
+ViewBoardsPresenter -[norank]-> ViewBoardsOutputData
+ViewBoardsPresenter -[norank]-> BoardsViewModel
+
+' Interactor and its boundaries
+ViewBoardsInteractor .[norank].|> ViewBoardsInputBoundary
+ViewBoardsInteractor -[norank]-> ViewBoardsInputData
+ViewBoardsInteractor -[norank]-> ViewBoardsOutputBoundary
+ViewBoardsInteractor -[norank]-> ViewBoardsOutputData
+ViewBoardsInteractor -[norank]-> ViewBoardsDataAccessInterface
+ViewBoardsInteractor -[norank]-> Board
+
+' Persistence
+ViewBoardsDataAccessInterface -[norank]-> Board
+JsonBoardDataAccessObject .[norank].|> ViewBoardsDataAccessInterface
+JsonBoardDataAccessObject -[norank]-> File
+@enduml
