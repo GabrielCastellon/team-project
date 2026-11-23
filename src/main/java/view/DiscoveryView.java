@@ -23,10 +23,20 @@ import interface_adapter.save_pin.SavePinViewModelListener;
 import java.util.HashMap;
 import java.util.Map;
 
+import entity.Photo;
+import use_case.save_pin.SavePinInteractor;
+
 import javax.swing.*;
+
 
 public final class DiscoveryView extends JPanel implements DiscoveryPresenter.View,
         SavePinViewModelListener {
+
+    public interface SaveAction {
+        void save(Photo photo);
+    }
+
+    private SaveAction saveAction;
 
     private final JTextField query = new JTextField("bedroom", 17);
 
@@ -133,6 +143,11 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
         this.controller = controller;
     }
 
+    //stores an action for later
+    public void setSaveAction(SaveAction saveAction){
+        this.saveAction = saveAction;
+    }
+
     @Override
     public void busy(boolean value) {
         enable(controls, !value);
@@ -198,9 +213,12 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
         description.setOpaque(false);
         panel.add(description);
         panel.add(new JLabel(card.score));
+
         JLabel saveLabel = new JLabel();
-        saveLabels.put(card.photo.id(), saveLabel); //map stores label under photo ID
+        //map stores label under photo ID; Discover can update a card later e.g. save status
+        saveLabels.put(card.photo.id(), saveLabel);
         panel.add(saveLabel);
+
         JPanel links = row();
         links.add(
                 button(
@@ -211,6 +229,10 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
         JPanel likes = row();
         likes.add(button("Like → A", () -> controller.like(a.getText(), card.photo)));
         likes.add(button("Like → B", () -> controller.like(b.getText(), card.photo)));
+        //Discover checks if app supplies save action; click supplies photo to saveAction.save
+        if(saveAction != null){
+            likes.add(button("Save", () -> saveAction.save(card.photo)));
+        }
         panel.add(likes);
         JPanel removal = row();
         removal.add(button("Remove from A", () -> controller.remove(a.getText(), card.photo)));

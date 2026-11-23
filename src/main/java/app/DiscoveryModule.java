@@ -15,6 +15,7 @@ import view.SwingTaskRunner;
 import java.nio.file.Path;
 import java.util.Map;
 import javax.swing.JPanel;
+import interface_adapter.save_pin.SavePinPresenter;
 
 /** Wires Kevin's module only; the shell remains usable without discovery configuration. */
 public final class DiscoveryModule {
@@ -47,6 +48,13 @@ public final class DiscoveryModule {
 
             SavePinViewModel savePinViewModel = new SavePinViewModel();
             DiscoveryView view = new DiscoveryView(embeddings.modelId(), savePinViewModel);
+
+            SavePinPresenter savePinPresenter = new SavePinPresenter(savePinViewModel);
+            //.setSaveAction() stores action; when card builds each card save button appears
+            //case of signed out, presenter reports message through viewmodel that view listens to
+            view.setSaveAction(photo -> savePinPresenter.prepareFailView(
+                    "Sign in to save a photo"));
+
             view.setController(new DiscoveryController(
                     service, images::load, view, new SwingTaskRunner<>()));
 
