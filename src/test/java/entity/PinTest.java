@@ -31,6 +31,18 @@ public class PinTest {
     }
 
     @Test
+    void rejectBlankOwnerId(){
+        Photo catPhoto = new Photo("123", "Orange Cat",
+                "https://cat.com/images.cat.jpg", "https://cat.com",
+                "Lebron", "https://lebron_James.com",
+                "https://lebron_download/cat");
+        assertThrows(IllegalArgumentException.class,
+                () -> new Pin("321", "   ", catPhoto));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Pin("31", "", catPhoto));
+    }
+
+    @Test
     //BR6: Tests Pin construction when source photo metadata is missing
     void rejectNullPhoto(){
         assertThrows(NullPointerException.class,
@@ -45,6 +57,18 @@ public class PinTest {
                 "Lebron", "https://lebron_James.com",
                 "https://lebron_download/cat");
         assertThrows(NullPointerException.class, () -> new Pin(null,"323", catPhoto));
+    }
+
+    @Test
+    void rejectBlankPinId(){
+        Photo catPhoto = new Photo("123", "Orange Cat",
+                "https://cat.com/images.cat.jpg", "https://cat.com",
+                "Lebron", "https://lebron_James.com",
+                "https://lebron_download/cat");
+        assertThrows(IllegalArgumentException.class,
+                () -> new Pin("", "44", catPhoto));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Pin("   ", "21", catPhoto));
     }
 }
 
