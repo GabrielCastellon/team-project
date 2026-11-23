@@ -82,6 +82,25 @@ class CreateBoardInteractorTest {
         assertNull(presenter.result);
     }
 
+    @Test
+    void reportsFailureWhenBoardLookupFails() {
+        FakeBoardDAO dao = new FakeBoardDAO() {
+            @Override
+            public boolean existsByName(String userId, String name) {
+                throw new UncheckedIOException(new IOException("Cannot read boards"));
+            }
+        };
+        FakePresenter presenter = new FakePresenter();
+        CreateBoardInteractor interactor =
+                new CreateBoardInteractor(dao, presenter, new BoardFactory());
+
+        interactor.execute(new CreateBoardInputData("u17", "Gym"));
+
+        assertEquals("Could not save the board.", presenter.errorMessage);
+        assertNull(dao.savedBoard);
+        assertNull(presenter.result);
+    }
+
     private static class FakeBoardDAO implements BoardDataAccessInterface {
         private Board savedBoard;
 

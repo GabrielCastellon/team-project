@@ -29,13 +29,14 @@ public class CreateBoardInteractor implements CreateBoardInputBoundary {
 
         name = name.strip();
 
-        if (boardDAO.existsByName(userId, name)) {
-            outputBoundary.prepareFailView("You already have a board with that name.");
-            return;
-        }
-
-        Board board = boardFactory.create(userId, name);
+        Board board;
         try {
+            if (boardDAO.existsByName(userId, name)) {
+                outputBoundary.prepareFailView("You already have a board with that name.");
+                return;
+            }
+
+            board = boardFactory.create(userId, name);
             boardDAO.save(board);
         } catch (UncheckedIOException e) {
             outputBoundary.prepareFailView("Could not save the board.");
