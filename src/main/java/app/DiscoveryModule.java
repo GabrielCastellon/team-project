@@ -10,6 +10,7 @@ import interface_adapter.discovery.DiscoveryController;
 import use_case.discovery.DiscoveryService;
 import use_case.discovery.EmbeddingProvider;
 import view.DiscoveryView;
+import view.SwingTaskRunner;
 import java.nio.file.Path;
 import java.util.Map;
 import javax.swing.JPanel;
@@ -43,7 +44,7 @@ public final class DiscoveryModule {
             DiscoveryService service = new DiscoveryService(
                     catalog, embeddings, new JsonPreferenceStore(Path.of(directory)));
             DiscoveryView view = new DiscoveryView(embeddings.modelId());
-            view.setController(new DiscoveryController(service, images::load, view));
+            view.setController(new DiscoveryController(service, images::load, view, new SwingTaskRunner<>()));
             if (clip != null) {
                 ClipEmbeddingProvider ownedClip = clip;
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> close(ownedClip)));

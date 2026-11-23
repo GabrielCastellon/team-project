@@ -74,6 +74,11 @@ classDiagram
     DiscoveryService ..> Photo : returns
     UnsplashCatalog ..> Photo : constructs
     DiscoveryController --> DiscoveryPresenter
+    DiscoveryController --> TaskRunner : schedules work
+    SwingTaskRunner ..|> TaskRunner
+    class TaskRunner {
+        <<interface>>
+    }
     DiscoveryPresenter --> PresenterView : publishes UI changes
     DiscoveryView ..|> PresenterView
     DiscoveryPresenter --> ThumbnailLoader
@@ -89,7 +94,7 @@ This is a search slice: only the search operation is listed on the input boundar
 
 ## 2. Successful search sequence
 
-Precondition: the Discovery tab is already initialized. Everything before the background-thread note runs on Swing's event dispatch thread (EDT). The background search task and its completion callback are owned by the controller's anonymous `SwingWorker`, the worker and JDK executor are omitted as separate lifelines.
+Precondition: the Discovery tab is already initialized. Everything before the background-thread note runs on Swing's event dispatch thread (EDT). The background search task and its completion callback are scheduled by `SwingTaskRunner` through the controller's `TaskRunner` interface. The runner and its Swing worker are omitted as separate lifelines.
 
 ```mermaid
 sequenceDiagram
@@ -160,7 +165,7 @@ sequenceDiagram
     P->>V: busy(false)
 ```
 
-No cards are built and candidates remain empty after validation/API failure. A preview-only failure follows the successful-search sequence and keeps the photo/attribution available. Cancellation has its own `InterruptedException` handling in the controller.
+No cards are built and candidates remain empty after validation/API failure. A preview-only failure follows the successful-search sequence and keeps the photo/attribution available. The runner restores the thread interrupt flag if waiting is interrupted. The controller displays a cancellation message when it receives an interruption.
 
 ## 4. Skeleton startup and integration
 
