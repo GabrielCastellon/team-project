@@ -2,6 +2,7 @@ package use_case.create_board;
 
 import entity.Board;
 import entity.BoardFactory;
+import java.io.UncheckedIOException;
 
 public class CreateBoardInteractor implements CreateBoardInputBoundary {
     private final BoardDataAccessInterface boardDAO;
@@ -34,8 +35,12 @@ public class CreateBoardInteractor implements CreateBoardInputBoundary {
         }
 
         Board board = boardFactory.create(userId, name);
-        boardDAO.save(board);
-
+        try {
+            boardDAO.save(board);
+        } catch (UncheckedIOException e) {
+            outputBoundary.prepareFailView("Could not save the board.");
+            return;
+        }
         CreateBoardOutputData outputData =
                 new CreateBoardOutputData(board.getId(), board.getName());
         outputBoundary.prepareSuccessView(outputData);

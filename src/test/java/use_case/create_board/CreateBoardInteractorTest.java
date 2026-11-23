@@ -3,6 +3,8 @@ package use_case.create_board;
 import entity.Board;
 import entity.BoardFactory;
 import org.junit.jupiter.api.Test;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,6 +60,25 @@ class CreateBoardInteractorTest {
 
         assertEquals("You already have a board with that name.", presenter.errorMessage);
         assertNull(dao.savedBoard);
+        assertNull(presenter.result);
+    }
+
+    @Test
+    void reportsFailureWhenBoardCannotBeSaved() {
+        FakeBoardDAO dao = new FakeBoardDAO() {
+            @Override
+            public void save(Board board) {
+                throw new UncheckedIOException(new IOException("Disk is full"));
+            }
+        };
+
+        FakePresenter presenter = new FakePresenter();
+        CreateBoardInteractor interactor =
+                new CreateBoardInteractor(dao, presenter, new BoardFactory());
+
+        interactor.execute(new CreateBoardInputData("u17", "Gym"));
+
+        assertEquals("Could not save the board.", presenter.errorMessage);
         assertNull(presenter.result);
     }
 
