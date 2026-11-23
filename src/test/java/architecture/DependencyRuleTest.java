@@ -20,7 +20,7 @@ class DependencyRuleTest {
                 .resideOutsideOfPackages("use_case..", "entity..", "java..")
                 .allowEmptyShould(true).check(classes);
         noClasses().that().resideInAPackage("interface_adapter..")
-                .should().dependOnClassesThat().resideInAnyPackage("app..", "view..", "data_access..")
+                .should().dependOnClassesThat().resideInAnyPackage("app..", "view..", "data_access..", "javax.swing..")
                 .allowEmptyShould(true).check(classes);
         noClasses().that().resideInAPackage("data_access..")
                 .should().dependOnClassesThat().resideInAnyPackage("app..", "view..", "interface_adapter..")

@@ -2,16 +2,14 @@ package interface_adapter.discovery;
 
 import entity.Photo;
 
-import use_case.discovery.DiscoveryInputBoundary;
 import interface_adapter.discovery.DiscoveryPresenter.Card;
 import interface_adapter.discovery.DiscoveryPresenter.ThumbnailLoader;
 import interface_adapter.discovery.DiscoveryPresenter.View;
 
+import use_case.discovery.DiscoveryInputBoundary;
+
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-
-import javax.swing.SwingWorker;
 
 public final class DiscoveryController {
 
@@ -19,13 +17,19 @@ public final class DiscoveryController {
 
     private final DiscoveryPresenter presenter;
 
+    private final TaskRunner<List<Card>> tasks;
+
     private List<Photo> candidates = List.of();
 
     private boolean working;
 
     public DiscoveryController(
-            DiscoveryInputBoundary service, ThumbnailLoader thumbnails, View view) {
+            DiscoveryInputBoundary service,
+            ThumbnailLoader thumbnails,
+            View view,
+            TaskRunner<List<Card>> tasks) {
         this.service = service;
+        this.tasks = tasks;
         this.presenter = new DiscoveryPresenter(thumbnails, view);
     }
 
@@ -103,35 +107,23 @@ public final class DiscoveryController {
         working = true;
         presenter.busy(true);
         presenter.status("Working…");
-        new SwingWorker<List<Card>, Void>() {
-
-            @Override
-            protected List<Card> doInBackground() throws Exception {
-                return task.call();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    List<Card> result = get();
-                    if (result == null) {
-                        presenter.status(message);
-                    } else {
-                        presenter.show(result, result.isEmpty() ? "No images. " + message : message);
-                    }
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
+        tasks.run(task, (result, failure) -> {
+            try {
+                if (failure instanceof InterruptedException) {
                     presenter.status("Cancelled");
-                } catch (ExecutionException ex) {
-                    String detail = ex.getCause().getMessage();
-                    presenter.status(
-                            "Could not complete: "
-                                    + (detail == null ? "unexpected error" : detail));
-                } finally {
-                    working = false;
-                    presenter.busy(false);
+                } else if (failure != null) {
+                    String detail = failure.getMessage();
+                    presenter.status("Could not complete: "
+                            + (detail == null ? "unexpected error" : detail));
+                } else if (result == null) {
+                    presenter.status(message);
+                } else {
+                    presenter.show(result, result.isEmpty() ? "No images. " + message : message);
                 }
+            } finally {
+                working = false;
+                presenter.busy(false);
             }
-        }.execute();
+        });
     }
 }
