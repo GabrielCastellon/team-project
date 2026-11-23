@@ -11,6 +11,7 @@ import interface_adapter.save_pin.SavePinViewModel;
 import use_case.discovery.DiscoveryService;
 import use_case.discovery.EmbeddingProvider;
 import view.DiscoveryView;
+import view.SwingTaskRunner;
 import java.nio.file.Path;
 import java.util.Map;
 import javax.swing.JPanel;
@@ -43,9 +44,12 @@ public final class DiscoveryModule {
                     .getOrDefault("DISCOVERY_DATA_DIR", "data/discovery-preferences");
             DiscoveryService service = new DiscoveryService(
                     catalog, embeddings, new JsonPreferenceStore(Path.of(directory)));
+
             SavePinViewModel savePinViewModel = new SavePinViewModel();
             DiscoveryView view = new DiscoveryView(embeddings.modelId(), savePinViewModel);
-            view.setController(new DiscoveryController(service, images::load, view));
+            view.setController(new DiscoveryController(
+                    service, images::load, view, new SwingTaskRunner<>()));
+
             if (clip != null) {
                 ClipEmbeddingProvider ownedClip = clip;
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> close(ownedClip)));

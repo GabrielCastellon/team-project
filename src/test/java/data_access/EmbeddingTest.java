@@ -10,6 +10,8 @@ import use_case.discovery.EmbeddingProvider;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 class EmbeddingTest {
 
@@ -48,25 +50,65 @@ class EmbeddingTest {
 
     @Test
     void cachesFeaturesButNotAcrossModelInstances() throws Exception {
-        int[] calls = {0};
-        EmbeddingProvider fake =
-                new EmbeddingProvider() {
-
-                    public String modelId() {
-                        return "fake";
-                    }
-
-                    public FeatureVector embed(Photo p) {
-                        calls[0]++;
-                        return new FeatureVector(new double[] {1});
-                    }
-                };
-        Photo p = new Photo("x", "x", "image", "page", "artist", "profile", "download");
+        List<String> calls = new ArrayList<>();
+        EmbeddingProvider fake = recordingProvider(calls);
+        Photo photo = photo("x", "image");
         CachedEmbeddingProvider cache = new CachedEmbeddingProvider(fake);
-        cache.embed(p);
-        cache.embed(p);
-        assertEquals(1, calls[0]);
-        new CachedEmbeddingProvider(fake).embed(p);
-        assertEquals(2, calls[0]);
+
+        assertSame(cache.embed(photo), cache.embed(photo));
+        assertEquals("fake", cache.modelId());
+        assertEquals(List.of("image"), calls);
+
+        new CachedEmbeddingProvider(fake).embed(photo);
+        assertEquals(List.of("image", "image"), calls);
+    }
+
+    @Test
+    void reusesRecentlyViewedImagesAndRecomputesEvictedImages() throws Exception {
+        List<String> calls = new ArrayList<>();
+        CachedEmbeddingProvider cache = new CachedEmbeddingProvider(recordingProvider(calls), 2);
+        Photo a = photo("a", "image-a");
+        Photo b = photo("b", "image-b");
+        Photo c = photo("c", "image-c");
+
+        FeatureVector first = cache.embed(a);
+        FeatureVector second = cache.embed(b);
+        assertSame(first, cache.embed(a));
+        cache.embed(c);
+        assertSame(first, cache.embed(a));
+        assertNotSame(second, cache.embed(b));
+
+        assertEquals(List.of("image-a", "image-b", "image-c", "image-b"), calls);
+    }
+
+    @Test
+    void recalculatesWhenTheImageUrlChangesForTheSamePhotoId() throws Exception {
+        List<String> calls = new ArrayList<>();
+        CachedEmbeddingProvider cache = new CachedEmbeddingProvider(recordingProvider(calls));
+        FeatureVector first = cache.embed(photo("same-id", "old-image"));
+
+        FeatureVector changed = cache.embed(photo("same-id", "new-image"));
+        assertNotSame(first, changed);
+        assertSame(changed, cache.embed(photo("same-id", "new-image")));
+        assertEquals(List.of("old-image", "new-image"), calls);
+    }
+
+    private EmbeddingProvider recordingProvider(List<String> calls) {
+        return new EmbeddingProvider() {
+            @Override
+            public String modelId() {
+                return "fake";
+            }
+
+            @Override
+            public FeatureVector embed(Photo photo) {
+                calls.add(photo.imageUrl());
+                return new FeatureVector(new double[] {1});
+            }
+        };
+    }
+
+    private Photo photo(String id, String imageUrl) {
+        return new Photo(id, id, imageUrl, "page", "artist", "profile", "download");
     }
 }

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import use_case.discovery.*;
 
 import view.DiscoveryView;
+import view.SwingTaskRunner;
 
 import java.io.IOException;
 import java.util.List;
@@ -66,7 +67,8 @@ class DiscoveryControllerTest {
                         url -> {
                             throw new IOException("thumbnail unavailable");
                         },
-                        view);
+                        view,
+                        new SwingTaskRunner<>());
         SwingUtilities.invokeAndWait(() -> controller.search("room", 1, "", "relevant"));
         assertTrue(done.await(5, TimeUnit.SECONDS));
         assertFalse(networkOnEdt.get());
@@ -103,7 +105,8 @@ class DiscoveryControllerTest {
                                     throw new IOException("rate limit");
                                 }),
                         url -> null,
-                        view);
+                        view,
+                        new SwingTaskRunner<>());
         SwingUtilities.invokeAndWait(() -> controller.search("room", 1, "", "relevant"));
         assertTrue(done.await(5, TimeUnit.SECONDS));
         assertTrue(status.get().contains("rate limit"));
@@ -148,7 +151,8 @@ class DiscoveryControllerTest {
                                                     "download"));
                                 }),
                         url -> null,
-                        view);
+                        view,
+                        new SwingTaskRunner<>());
 
         runAndWait(done, () -> controller.recommend("A"));
         assertTrue(status.get().contains("Search for images"));
