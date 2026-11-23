@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import entity.Board;
 import use_case.create_board.BoardDataAccessInterface;
+import use_case.view_boards.ViewBoardsDataAccessInterface;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -16,12 +17,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class JsonBoardDataAccessObject implements BoardDataAccessInterface {
+public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface {
     private final Path filePath;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public JsonBoardDataAccessObject(Path filePath) {
         this.filePath = filePath.toAbsolutePath();
+    }
+
+    @Override
+    public List<Board> findByUserId(String userId) {
+        List<Board> userBoards = new ArrayList<>();
+
+        for (Board board : readBoards()) {
+            if (board.getUserId().equals(userId)) {
+                userBoards.add(board);
+            }
+        }
+
+        return userBoards;
     }
 
     @Override
