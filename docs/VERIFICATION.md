@@ -1,50 +1,32 @@
-# Discovery verification and rubric evidence
+# Discovery verification
 
-## Active application and backup
-
-- Shared foundation: team `main`, published at `01a32869d53ef368c899fb44600ad0a95b52b528` before discovery integration.
-- Original code: `kevin_working` at `1cdd12d817b281ba80dbe2d84c8cc379e8a27f1a`; historical backup only. It is not a runtime dependency and is not a branch to merge into the skeleton.
-- Active proposed feature: `feature/kevin-discovery-team`, PR #10, based on the foundation. `mvn compile exec:java` starts `app.Main`, creates the shared shell and opens Discovery inside that shell.
-- Review: GabrielCastellon was requested on PR #10; it remains unmerged. Issue #9 tracks the work. Teammates' account, pin, board and profile features remain theirs to implement.
+Verified November 21 on team main at `0171ba8`, after [Discovery integration](https://github.com/GabrielCastellon/team-project/pull/10), [Save Pin part 1](https://github.com/GabrielCastellon/team-project/pull/14) and [profile entities](https://github.com/GabrielCastellon/team-project/pull/15) merged.
 
 ## Automated checks
 
-Run from the repository root with JDK 17:
+On a clean Windows checkout, Java 17 and `mvn --batch-mode --no-transfer-progress verify` ran 55 tests with no failures, errors or skips and zero violations under the configured Checkstyle rules. The [team CI run](https://github.com/GabrielCastellon/team-project/actions/runs/44958979289) also passed. This is a snapshot of that commit. The tests use fixtures for the API and exercise preference storage separately from team pin storage.
 
-```sh
-mvn --batch-mode --no-transfer-progress verify
-```
+## CAVE and the dependency rule
 
-The suite now has 32 tests. `verify` runs the tests, packages the application and runs the targeted Checkstyle configuration. GitHub Actions runs the same command on Java 17.
+Run `cave verify` at the project root. CAVE 1.1.3 reported missing directories `entities`, `views` and `database`. This repo uses `entity`, `view` and `data_access`. The analyzer did not give the project a clean report.
 
-| Evidence | What it establishes |
-|---|---|
-| `src/test/java/app/DiscoveryShellIntegrationTest.java` | The real Discovery module can be constructed with explicit fixture configuration inside the real skeleton; initialization is lazy, its panel/state is retained, other owners' tabs remain placeholders, and missing configuration does not break navigation |
-| `src/test/java/view/MainViewTest.java` | Generic proxy/navigation state retention, failure isolation/retry and EDT enforcement |
-| `src/test/java/architecture/DependencyRuleTest.java` | Inner layers do not depend on outer implementations; adapters and views respect the configured boundaries |
-| `src/test/java/interface_adapter/discovery/DiscoveryControllerTest.java` | Requests run off the EDT, UI updates return to the EDT, failures restore controls and stale candidates are not reused |
-| `src/test/java/interface_adapter/discovery/DiscoveryPresenterTest.java` | Failed preview retains metadata; scores use stable locale-independent formatting |
-| `src/test/java/use_case/discovery/DiscoveryServiceTest.java` | Search validation, ranking/exclusions, mixing endpoints, group compromise, analysis and gateway failure behavior |
-| Entity/data-access tests | Vector mathematics, JSON save/reload/corruption, local Unsplash request/response/error/tracking fixtures, preprocessing and embedding cache behavior |
-| Exported-source build | The feature can be built/tested from a source archive containing no `.git` directory, backup branch or old checkout |
+| Use case | Dependencies flagged by CAVE |
+| --- | --- |
+| Discovery | controller to presenter; controller, presenter and input boundary to entities; view to presenter |
+| Save Pin | controller and input data to entities |
 
-The shell composition tests use a fixture access-key string and make no network requests; they do not validate a real credential. Existing HTTP adapter tests use a loopback server. The exported-source build establishes independence from Git metadata, not live API availability.
+The ArchUnit dependency test passed on the same checkout. It checks allowed package dependencies, not whether each use case follows the sequence taught in class. Discovery's references to entities point inward. Its controller calls a presenter in the same adapter layer, and the Swing view implements a presenter interface. The interactor returns results through the input boundary instead of calling an output boundary. This is a documented difference from the course sequence; see the [class and sequence diagrams](DISCOVERY_DESIGN.md). The Save Pin findings are reported here for its owner.
 
-## Rubric mapping
+A separate concrete issue on this main revision is that the Discovery controller imports SwingWorker. [PR 11](https://github.com/GabrielCastellon/team-project/pull/11) moves thread scheduling into the view layer and adds an architecture test. CAVE still flagged the same five Discovery dependencies on that PR at `50cf3bd`. Passing ArchUnit and addressing the Swing import do not clear the CAVE findings.
 
-- **Specification and scope:** README retains all owners/stories; `docs/USE_CASES.md` provides proposed flows. Kevin's features remain distinct from teammates' account/pin/board/profile work.
-- **Clean Architecture:** `docs/ARCHITECTURE.md` explains source dependency direction. `docs/DISCOVERY_DESIGN.md` shows actual use-case types, interface realizations, search success/failure, skeleton startup and ranking/persistence dependencies. The service's synchronous response style is explicitly documented rather than inventing an output callback.
-- **SOLID:** explain SRP using controller/presenter/composition responsibilities and DIP using the input boundary and use-case-owned catalog/embedding/store ports; show the concrete code and tests. Open/Closed is illustrated by the panel supplier and interchangeable embedding providers.
-- **Patterns/extensibility:** shell Virtual Proxy, embedding Decorator and embedding Strategy are implemented. The rubric's Exceptional criterion requires a pattern not presented in class; the supplied assessment files do not establish which patterns were taught. Do not claim that condition without checking lecture coverage.
-- **Code quality:** Checkstyle is enforced by `mvn verify`, alongside tests and architectural checks. It is a targeted baseline, not every course style rule. Use PR #10 and its review history as evidence of teammate review once completed.
-- **API/persistence:** Unsplash adapters and JSON preferences are implemented and fixture-tested. Demonstrate a real call and save/restart/reload in the live demo; preference collections are not authenticated team boards.
-- **Presentation:** diagrams/evidence are prepared in Markdown, not a completed presentation deck. The whole team must present, rehearse and demonstrate its completed integrated MVP.
+## Evidence for the demo
 
-## Manual checks still required before the final demo
+The November 15 project rubric gives 10 points each for Clean Architecture, overall design and code quality. Show the actual search sequence, explain the controller and presenter tradeoff, and use a reviewed PR and Checkstyle run as evidence. For design, explain dependency inversion using the catalog and embedding interfaces, single responsibility using the presenter, and why the embedding cache uses Decorator to avoid repeated inference.
 
-1. Set a real `UNSPLASH_ACCESS_KEY`, start the shared app and open Discovery. Check search results, attribution, page/filter/order controls and errors.
-2. Save preference samples, recommend/mix/group/analyze, restart, and verify sample reload/removal.
-3. If presenting CLIP, export a compatible model and verify real inference and ranking on the demo machine. Default RGB histogram mode is not semantic CLIP.
-4. After teammates integrate their features, test actual account ownership, board/pin mapping and profile behavior together.
+The rubric scores the live demo separately from tests. On the presentation machine:
 
-No live Unsplash call, real optional CLIP inference, completed teammate integration, final slides or human review is claimed by these automated checks.
+1. Start the shared app with Java 17 and a locally configured Unsplash access key. Search, check attribution, and show one empty or invalid search.
+2. Save a preference, reopen the app and show that it loads. Rank a new page of candidates. Confirm the selected embedding model before describing the result as CLIP.
+3. After the owners integrate accounts, pins and boards, demonstrate saving a pin for the signed in user and reopening it after a restart. A Discovery preference alone does not verify this flow.
+
+No live search, model inference or full team demo was performed as part of this November 21 audit.
