@@ -4,6 +4,7 @@ import interface_adapter.create_board.BoardsState;
 import interface_adapter.create_board.BoardsViewModel;
 import interface_adapter.create_board.BoardsViewModelListener;
 import interface_adapter.create_board.CreateBoardController;
+import interface_adapter.view_boards.ViewBoardsController;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -12,18 +13,21 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import java.awt.BorderLayout;
+import java.awt.event.HierarchyEvent;
 
 public class BoardsView extends JPanel implements BoardsViewModelListener {
-    private final CreateBoardController controller;
+    private final CreateBoardController createBoardController;
+    private final ViewBoardsController viewBoardsController;
     private final BoardsViewModel viewModel;
     private final DefaultListModel<String> boardNames = new DefaultListModel<>();
     private final JButton createButton = new JButton("Create Board");
     private String currentUserId;
 
-    public BoardsView(CreateBoardController controller, BoardsViewModel viewModel) {
+    public BoardsView(CreateBoardController createBoardController, BoardsViewModel viewModel, ViewBoardsController viewBoardsController) {
         super(new BorderLayout());
-        this.controller = controller;
+        this.createBoardController = createBoardController;
         this.viewModel = viewModel;
+        this.viewBoardsController = viewBoardsController;
 
         createButton.setEnabled(false);
         createButton.addActionListener(event -> showCreateBoardDialog());
@@ -32,6 +36,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         add(new JScrollPane(new JList<>(boardNames)), BorderLayout.CENTER);
 
         viewModel.addListener(this);
+        addHierarchyListener(event -> {
+            if ((event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
+                onBoardsOpened();
+            }
+        });
         stateChanged();
     }
 
@@ -40,15 +49,24 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
             currentUserId = userId;
             viewModel.setState(new BoardsState());
             viewModel.notifyStateChanged();
+            if (isShowing()) {
+                onBoardsOpened();
+            }
         }
         createButton.setEnabled(userId != null && !userId.isBlank());
+    }
+
+    private void onBoardsOpened() {
+        if (currentUserId != null && !currentUserId.isBlank()) {
+            viewBoardsController.execute(currentUserId);
+        }
     }
 
     private void showCreateBoardDialog() {
         String name = JOptionPane.showInputDialog(this, "Enter a board name:");
 
         if (name != null) {
-            controller.execute(currentUserId, name);
+            createBoardController.execute(currentUserId, name);
         }
     }
 
