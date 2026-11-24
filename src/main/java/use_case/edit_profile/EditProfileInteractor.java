@@ -28,8 +28,14 @@ public class EditProfileInteractor implements EditProfileInputBoundary {
     @Override
     public void execute(EditProfileInputData inputData) {
         // First-time user: nothing stored yet, so start from a default profile (spec's first-time flow).
-        UserProfile existing = dataAccess.findProfile(inputData.getUserId())
-                .orElseGet(() -> UserProfile.defaultFor(inputData.getUserId()));
+        UserProfile existing;
+        try {
+            existing = dataAccess.findProfile(inputData.getUserId())
+                    .orElseGet(() -> UserProfile.defaultFor(inputData.getUserId()));
+        } catch (IOException exception) {
+            outputBoundary.prepareFailView("Couldn't load your profile, try again");
+            return;
+        }
 
         String displayName = inputData.getDisplayName() == null ? "" : inputData.getDisplayName().trim();
         if (displayName.isEmpty()) {
