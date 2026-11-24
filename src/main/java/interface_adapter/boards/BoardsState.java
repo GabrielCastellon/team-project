@@ -1,4 +1,4 @@
-package interface_adapter.create_board;
+package interface_adapter.boards;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

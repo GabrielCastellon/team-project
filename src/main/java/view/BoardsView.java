@@ -1,8 +1,8 @@
 package view;
 
-import interface_adapter.create_board.BoardsState;
-import interface_adapter.create_board.BoardsViewModel;
-import interface_adapter.create_board.BoardsViewModelListener;
+import interface_adapter.boards.BoardsState;
+import interface_adapter.boards.BoardsViewModel;
+import interface_adapter.boards.BoardsViewModelListener;
 import interface_adapter.create_board.CreateBoardController;
 import interface_adapter.view_boards.ViewBoardsController;
 
@@ -47,8 +47,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     public void setCurrentUserId(String userId) {
         if (!java.util.Objects.equals(currentUserId, userId)) {
             currentUserId = userId;
-            viewModel.setState(new BoardsState());
-            viewModel.notifyStateChanged();
+            viewModel.resetForAccountChange();
             if (isShowing()) {
                 onBoardsOpened();
             }
@@ -81,7 +80,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
 
         if (!state.getErrorMessage().isEmpty()) {
             JOptionPane.showMessageDialog(this, state.getErrorMessage(),
-                    "Create Board", JOptionPane.ERROR_MESSAGE);
+                    "Boards", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

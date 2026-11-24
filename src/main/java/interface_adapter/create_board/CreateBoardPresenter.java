@@ -1,5 +1,7 @@
 package interface_adapter.create_board;
 
+import interface_adapter.boards.BoardsState;
+import interface_adapter.boards.BoardsViewModel;
 import use_case.create_board.CreateBoardOutputBoundary;
 import use_case.create_board.CreateBoardOutputData;
 

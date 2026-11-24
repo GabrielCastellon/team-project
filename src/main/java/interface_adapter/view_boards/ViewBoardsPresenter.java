@@ -1,7 +1,7 @@
 package interface_adapter.view_boards;
 
-import interface_adapter.create_board.BoardsState;
-import interface_adapter.create_board.BoardsViewModel;
+import interface_adapter.boards.BoardsState;
+import interface_adapter.boards.BoardsViewModel;
 import use_case.view_boards.ViewBoardsOutputBoundary;
 import use_case.view_boards.ViewBoardsOutputData;
 

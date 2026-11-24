@@ -2,7 +2,7 @@ package app;
 
 import data_access.JsonBoardDataAccessObject;
 import entity.BoardFactory;
-import interface_adapter.create_board.BoardsViewModel;
+import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.create_board.CreateBoardController;
 import interface_adapter.create_board.CreateBoardPresenter;
 import interface_adapter.view_boards.ViewBoardsController;
