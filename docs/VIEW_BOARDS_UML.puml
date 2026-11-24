@@ -87,7 +87,7 @@ class BoardsView {
     - viewModel: BoardsViewModel
     - currentUserId: String
     + setCurrentUserId(userId: String): void
-    + onBoardsOpened(): void
+    - onBoardsOpened(): void
     + stateChanged(): void
 }
 
