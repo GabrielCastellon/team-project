@@ -15,7 +15,7 @@ import java.awt.*;
  * Photofy account GUI.
  * Uses username/password only; it does not collect or depend on email addresses.
  */
-public class AuthFrame extends JFrame {
+public class AuthPanel extends JPanel {
     private final LoginController loginController;
     private final SignupController signupController;
     private final LoginViewModel loginViewModel;
@@ -31,7 +31,7 @@ public class AuthFrame extends JFrame {
     private JPasswordField registerPassword;
     private JPasswordField confirmPassword;
 
-    public AuthFrame(LoginController loginController,
+    public AuthPanel(LoginController loginController,
                      SignupController signupController,
                      LoginViewModel loginViewModel,
                      SignupViewModel signupViewModel,
@@ -42,16 +42,13 @@ public class AuthFrame extends JFrame {
         this.signupViewModel = signupViewModel;
         this.sessionManager = sessionManager;
 
-        setTitle("Photofy | Account");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(760, 780);
-        setMinimumSize(new Dimension(650, 650));
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(PhotofyTheme.BACKGROUND);
+        setBackground(PhotofyTheme.BACKGROUND);
+        setLayout(new BorderLayout());
 
         pages.add(createLoginPanel(), "login");
         pages.add(createRegisterPanel(), "register");
-        add(pages);
+
+        add(pages, BorderLayout.CENTER);
 
         showPage("login");
     }
