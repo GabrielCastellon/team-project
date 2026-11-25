@@ -1,7 +1,7 @@
 
-package App;
+package app;
 
-import App.presentation.AuthPanel;
+import app.presentation.AuthPanel;
 import data_access.JsonStorage;
 import data_access.JsonUserDataAccessObject;
 import entity.SessionManager;

@@ -1,4 +1,4 @@
-package App.presentation;
+package app.presentation;
 
 import java.awt.Color;
 import java.awt.Font;

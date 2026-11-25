@@ -1,4 +1,4 @@
-package App.presentation;
+package app.presentation;
 
 import entity.SessionManager;
 import entity.User;
