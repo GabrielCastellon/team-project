@@ -30,12 +30,14 @@ public class ViewPinsInteractorTest {
         interactor.execute("alex");
 
         //check what recordingoutput receives
-        assertEquals(List.of("Orange Cat"), output.descriptions);
-
+        ViewPinItem expected = new ViewPinItem("Orange Cat",
+                "image-url", "photographer");
+        assertEquals(List.of(expected), output.items);
     }
 
+    //fake presenter; remembers exactly what interactor sends
     public static class RecordingOutput implements ViewPinsOutputBoundary{
-        private List<String> descriptions;
+        private List<ViewPinItem> items;
 
         @Override
         public void presentError(String message) {
@@ -43,8 +45,8 @@ public class ViewPinsInteractorTest {
         }
 
         @Override
-        public void presentPins(List<String> descriptions) {
-            this.descriptions = descriptions;
+        public void presentPins(List<ViewPinItem> items) {
+            this.items = items;
         }
 
     }
