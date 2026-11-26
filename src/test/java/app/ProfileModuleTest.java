@@ -1,6 +1,7 @@
 package app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data_access.JsonProfileDataAccessObject;
@@ -9,6 +10,8 @@ import entity.UserProfile;
 import java.awt.Component;
 import java.awt.Container;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import javax.swing.AbstractButton;
 import javax.swing.JLabel;
@@ -77,6 +80,43 @@ class ProfileModuleTest {
 
         assertTrue(containsLabel(panel, "Display name is required."));
         assertTrue(new JsonProfileDataAccessObject(file).findProfile(ProfileModule.USER_ID).isEmpty());
+    }
+
+    @Test
+    void editIsDisabledUntilProfileHasLoaded() throws Exception {
+        List<Runnable> queued = new ArrayList<>();
+        JPanel[] panel = new JPanel[1];
+        SwingUtilities.invokeAndWait(() ->
+                panel[0] = ProfileModule.createPanel(directory.resolve("profiles.json"), queued::add));
+
+        SwingUtilities.invokeAndWait(() -> assertFalse(button(panel[0], "Edit Profile").isEnabled()));
+
+        queued.remove(0).run(); // the load finishes
+        SwingUtilities.invokeAndWait(() -> { });
+
+        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel[0], "Edit Profile").isEnabled()));
+    }
+
+    @Test
+    void cancelIsDisabledWhileSaving() throws Exception {
+        List<Runnable> queued = new ArrayList<>();
+        JPanel[] panel = new JPanel[1];
+        SwingUtilities.invokeAndWait(() ->
+                panel[0] = ProfileModule.createPanel(directory.resolve("profiles.json"), queued::add));
+        queued.remove(0).run();
+        SwingUtilities.invokeAndWait(() -> { });
+
+        SwingUtilities.invokeAndWait(() -> {
+            button(panel[0], "Edit Profile").doClick();
+            this.<JTextField>find(panel[0], "nameField").setText("Kieran");
+            button(panel[0], "Save").doClick();
+            assertFalse(button(panel[0], "Cancel").isEnabled());
+        });
+
+        queued.remove(0).run(); // the save finishes
+        SwingUtilities.invokeAndWait(() -> { });
+
+        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel[0], "Cancel").isEnabled()));
     }
 
     // builds the panel on the Swing thread, then flushes the render it queued

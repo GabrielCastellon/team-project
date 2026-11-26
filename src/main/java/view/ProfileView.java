@@ -56,7 +56,9 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
     private final JLabel nameError = errorLabel();
     private final JLabel bioError = errorLabel();
     private final JLabel avatarError = errorLabel();
+    private final JButton editButton = new JButton("Edit Profile");
     private final JButton saveButton = new JButton("Save");
+    private final JButton cancelButton = new JButton("Cancel");
 
     public ProfileView(ViewProfileController viewProfileController,
                        EditProfileController editProfileController,
@@ -74,6 +76,8 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
 
         // register before loading so the first result can't be missed
         viewModel.addListener(this);
+        // nothing to edit until the stored profile has arrived
+        editButton.setEnabled(false);
         statusLabel.setText("Loading profile…");
         viewProfileController.execute();
     }
@@ -94,7 +98,10 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         bioError.setText(state.getBioError());
         avatarError.setText(state.getAvatarError());
         statusLabel.setText(state.getStatusMessage().isEmpty() ? " " : state.getStatusMessage());
+        // a result arrived, so any load or save in progress has finished
+        editButton.setEnabled(true);
         saveButton.setEnabled(true);
+        cancelButton.setEnabled(true);
         // only a successful save leaves edit mode; on failure the form keeps the user's edits
         if (state.isSaved()) {
             cards.show(cardPanel, DISPLAY_CARD);
@@ -110,7 +117,6 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         bioText.setOpaque(false);
         avatarLabel.setName("avatarLabel");
 
-        JButton editButton = new JButton("Edit Profile");
         editButton.addActionListener(event -> startEditing());
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -137,7 +143,6 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         avatarRow.add(browseButton, BorderLayout.EAST);
 
         saveButton.addActionListener(event -> save());
-        JButton cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(event -> cancelEditing());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         buttons.add(saveButton);
@@ -178,8 +183,9 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
     }
 
     private void save() {
-        // disabled until the result arrives, so a double click can't submit twice
+        // disabled until the result arrives: no double submit, and no Cancel that the save would then overrule
         saveButton.setEnabled(false);
+        cancelButton.setEnabled(false);
         statusLabel.setText("Saving…");
         editProfileController.execute(nameField.getText(), bioField.getText(), avatarField.getText().trim());
     }
