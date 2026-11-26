@@ -10,6 +10,7 @@ import entity.Theme;
 import entity.UserProfile;
 
 import use_case.edit_profile.ProfileDataAccessInterface;
+import use_case.view_profile.ViewProfileDataAccessInterface;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -22,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /** Stores every user's profile in one JSON file, keyed by userId. */
-public final class JsonProfileDataAccessObject implements ProfileDataAccessInterface {
+public final class JsonProfileDataAccessObject implements ProfileDataAccessInterface, ViewProfileDataAccessInterface {
 
     private final Path file;
 
