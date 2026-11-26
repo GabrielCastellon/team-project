@@ -17,6 +17,7 @@ import use_case.view_pins.ViewPinsInteractor;
 import view.MainView;
 import view.PinsView;
 import view.PlaceholderView;
+import data_access.ImageLoader;
 
 /** Composition root. Replace only your feature's factory when integrating a use case. */
 public final class ApplicationFactory {
@@ -45,7 +46,12 @@ public final class ApplicationFactory {
 
     private JPanel createPinsPanel() {
         //demonstrated control flow
-        PinsView view = new PinsView();
+        ImageLoader images = new ImageLoader();
+        /*when view asks for a thumbnail, image.load(url) is called; constructor injection;
+        factory chooses concrete loader whilst view receives the interface, keeping DA indepedent
+        of Swing.
+         */
+        PinsView view = new PinsView(images::load);
         ViewPinsPresenter presenter = new ViewPinsPresenter(view);
         JsonPinDataAccessObject storage = new JsonPinDataAccessObject(Path.of("data",
                 "pins.json"));
