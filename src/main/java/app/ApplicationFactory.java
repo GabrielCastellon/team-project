@@ -1,13 +1,21 @@
 package app;
 
+import java.awt.event.HierarchyEvent;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.swing.JPanel;
 
+import data_access.JsonPinDataAccessObject;
 import entity.InMemorySessionManager;
 import entity.SessionManager;
+import entity.User;
+import interface_adapter.view_pins.ViewPinsController;
+import interface_adapter.view_pins.ViewPinsPresenter;
+import use_case.view_pins.ViewPinsInteractor;
 import view.MainView;
+import view.PinsView;
 import view.PlaceholderView;
 
 /** Composition root. Replace only your feature's factory when integrating a use case. */
@@ -29,9 +37,33 @@ public final class ApplicationFactory {
         features.put("Accounts",
                 () -> AuthenticationModule.createPanel(sessionManager));
         features.put("Discovery", discoveryFactory);
-        features.put("Pins", () -> new PlaceholderView("Pins", "Alex"));
+        features.put("Pins", this::createPinsPanel);
         features.put("Boards", () -> new PlaceholderView("Boards", "Gabriel"));
         features.put("Profile", () -> new PlaceholderView("Profile", "Kieran and Matthew"));
         return new MainView(features);
+    }
+
+    private JPanel createPinsPanel() {
+        //demonstrated control flow
+        PinsView view = new PinsView();
+        ViewPinsPresenter presenter = new ViewPinsPresenter(view);
+        JsonPinDataAccessObject storage = new JsonPinDataAccessObject(Path.of("data",
+                "pins.json"));
+        ViewPinsInteractor interactor = new ViewPinsInteractor(storage, presenter);
+        ViewPinsController controller = new ViewPinsController(interactor);
+
+        //listener runs lookup anytime screen becomes visible
+        view.addHierarchyListener(event -> {
+            boolean showingChanged = (event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0;
+            if (showingChanged && view.isShowing()) {
+                User user = sessionManager.getCurrentUser();
+                if (user == null) {
+                    view.showError("Sign in to view your saved pins");
+                } else {
+                    controller.execute(user.getId()); //reads current collection following use case
+                }
+            }
+        });
+        return view;
     }
 }

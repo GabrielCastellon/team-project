@@ -16,6 +16,7 @@ import view.MainView;
 import view.PlaceholderView;
 import static org.junit.jupiter.api.Assertions.*;
 import app.presentation.AuthPanel;
+import view.PinsView;
 
 /** Exercises the real module inside the shared shell without credentials or HTTP calls. */
 class DiscoveryShellIntegrationTest {
@@ -60,7 +61,7 @@ class DiscoveryShellIntegrationTest {
             tabs.setSelectedIndex(tabs.indexOfTab("Accounts"));
             assertInstanceOf(AuthPanel.class, content(tabs));
             tabs.setSelectedIndex(tabs.indexOfTab("Pins"));
-            assertInstanceOf(PlaceholderView.class, content(tabs));
+            assertInstanceOf(PinsView.class, content(tabs));
         });
     }
 
