@@ -26,9 +26,14 @@ class EditProfileInteractorTest {
 
     private boolean failSave;
 
+    private boolean failLoad;
+
     private final ProfileDataAccessInterface dataAccess = new ProfileDataAccessInterface() {
         @Override
-        public Optional<UserProfile> findProfile(String userId) {
+        public Optional<UserProfile> findProfile(String userId) throws IOException {
+            if (failLoad) {
+                throw new IOException("disk unreadable");
+            }
             return Optional.ofNullable(stored.get(userId));
         }
 
@@ -186,5 +191,17 @@ class EditProfileInteractorTest {
         assertEquals("Couldn't save your changes, try again", output.failureMessage);
         assertNull(output.success);
         assertSame(original, stored.get(USER_ID));
+    }
+
+    //BR: a load failure is reported through the output boundary, not thrown, and nothing is saved
+    @Test
+    void loadIOExceptionReportsFailureAndSavesNothing() {
+        failLoad = true;
+
+        interactor.execute(input("Kieran", "", ""));
+
+        assertEquals("Couldn't load your profile, try again", output.failureMessage);
+        assertNull(output.success);
+        assertFalse(stored.containsKey(USER_ID));
     }
 }
