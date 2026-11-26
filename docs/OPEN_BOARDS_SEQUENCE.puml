@@ -1,0 +1,40 @@
+@startuml
+title Use Case 5.3 Open Boards - Main Success Scenario
+
+actor User
+participant BoardsView as View
+participant OpenBoardController as Controller
+participant OpenBoardInteractor as Interactor
+participant "JsonBoardDataAccessObject" as BoardDAO
+participant "JsonPinDataAccessObject" as PinDAO
+participant OpenBoardPresenter as Presenter
+participant BoardsViewModel as VM
+participant BoardsState as State
+
+User -> View : Select a board from my list
+View -> Controller : execute(currentUserId, selectedBoardId)
+Controller -> Interactor : execute(inputData)
+
+Interactor -> BoardDAO : findByOwnerAndId(userId, boardId)
+BoardDAO --> Interactor : selected board owned by the user
+Interactor -> PinDAO : findByOwnerId(userId)
+PinDAO --> Interactor : all saved pins owned by the user
+Interactor -> Interactor : For each ID in board.getPinIds(),\npick the pin with the same getPinId()
+Interactor -> Interactor : Build OpenBoardOutputData with the board name\nand a PinSummary for each match, in board order
+
+Interactor -> Presenter : prepareSuccessView(outputData)
+Presenter -> VM : getState()
+VM --> Presenter : state
+Presenter -> State : setOpenedBoard(outputData)
+Presenter -> VM : notifyStateChanged()
+VM -> View : stateChanged()
+View -> VM : getState()
+VM --> View : state
+View -> State : getOpenedBoard()
+State --> View : opened board details
+View --> User : Display board name and saved pins
+
+' Empty board: skip the pin lookup and present the board name with "No pins yet".
+' Missing or unowned board: prepareBoardNotFoundView() and return to the list.
+' Board or pin retrieval failure: prepareFailView(error).
+@enduml
