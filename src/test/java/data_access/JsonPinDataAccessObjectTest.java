@@ -6,8 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.io.IOException;
 
 public class JsonPinDataAccessObjectTest {
     @TempDir
@@ -48,5 +50,19 @@ public class JsonPinDataAccessObjectTest {
         assertEquals(1, result.size()); //catch if two user pins are returned
         //catch which pin is returned
         assertEquals("pin-a", result.get(0).getPinId());
+    }
+
+    // test if owner Id exists
+    @Test
+    void testLookUpOwnerId() throws IOException {
+        Path file = directory.resolve("pins.json"); //directory is existing @TempDir
+        Files.writeString(file, "[{}]");
+        JsonPinDataAccessObject storage = new JsonPinDataAccessObject(file);
+
+        //defines storage error caller expects
+        assertThrows(IllegalStateException.class, () -> storage.existsByOwnerAndPhotoId(
+                "alex", "121"));
+        //checks lookup preserve file content
+        assertEquals("[{}]", Files.readString(file));
     }
 }
