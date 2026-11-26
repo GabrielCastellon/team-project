@@ -20,8 +20,7 @@ public final class BoardsModule {
     }
 
     public static BoardsView createPanel() {
-        Path file = Path.of(System.getProperty("user.home"), ".photofy", "boards.json");
-
+        Path file = Path.of("data", "boards.json");
         BoardsViewModel viewModel = new BoardsViewModel();
         CreateBoardPresenter presenter = new CreateBoardPresenter(viewModel);
         JsonBoardDataAccessObject boardDAO = new JsonBoardDataAccessObject(file);
@@ -71,6 +70,12 @@ public final class BoardsModule {
             }
         };
 
-        return new BoardsView(new CreateBoardController(backgroundCreate), viewModel);
+        CreateBoardController controller =
+                new CreateBoardController(backgroundCreate);
+
+        BoardsView boardsView = new BoardsView(controller, viewModel);
+        boardsView.setCurrentUserId("demo-user"); // Later replace with user ID once login is integrated.
+
+        return boardsView;
     }
 }
