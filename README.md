@@ -8,7 +8,7 @@ The planned application lets people discover images, save pins to boards, and ge
 
 ## Current status
 
-The application uses the **shared foundation**: a runnable Java 17 Swing window with Accounts, Pins, Boards and Profile placeholders plus Kevin’s Discovery panel. Kevin’s discovery implementation is proposed here for teammate review; the other owners’ features remain pending. It starts without API keys or local data. Kevin’s previous discovery module is preserved in Git history and the migration backup; this feature branch restores it on the foundation. Discovery uses Unsplash and JSON preference snapshots; placeholders do not implement API or persistence behavior.
+The application uses the **shared foundation**: a runnable Java 17 Swing window with Accounts, Pins and Boards placeholders plus Kevin’s Discovery panel and Kieran’s Profile panel. Kevin’s discovery implementation is proposed here for teammate review; the other owners’ features remain pending. It starts without API keys or local data. Kevin’s previous discovery module is preserved in Git history and the migration backup; this feature branch restores it on the foundation. Discovery uses Unsplash and JSON preference snapshots; placeholders do not implement API or persistence behavior.
 
 ## User stories and ownership
 
@@ -30,7 +30,7 @@ The application uses the **shared foundation**: a runnable Java 17 Swing window 
 | Kevin | Recommend images | Rank candidates against saved preference samples | Implemented on this feature branch |
 | Alex | Manage pins | Create, view and edit saved image details | Placeholder |
 | Gabriel | Manage boards | Create, view, rename and delete image collections | Placeholder |
-| Kieran, coordinating with Matthew | Customize profile | Edit personal display and appearance settings | Placeholder |
+| Kieran, coordinating with Matthew | Edit profile | View and edit display name, biography and avatar, saved to local JSON | Implemented (Change Appearance stretch pending) |
 
 Kieran should own a distinct complete profile use case; coordinate the overlap with Matthew's account story so each member can demonstrate their own contribution. Detailed proposed flows and unresolved integration decisions are in [use cases](docs/USE_CASES.md). These are planning contracts for owners to confirm, not implemented teammate features.
 
@@ -68,6 +68,12 @@ Set `UNSPLASH_ACCESS_KEY` to your own Unsplash Access Key before starting, then 
 Search, like samples into preference A/B, rank the current candidate page, mix preferences, rank for a group, or analyze a sample collection. These are demo preference IDs, not authenticated accounts or real team boards. JSON snapshots live under `data/discovery-preferences/`; `DISCOVERY_DATA_DIR` overrides this path. Default embeddings are RGB histograms; optional CLIP requires a separately exported compatible model and `CLIP_MODEL_PATH`.
 
 See [discovery setup, limitations, math and integration](docs/KEVIN_DISCOVERY.md). Live Unsplash access and real optional CLIP inference remain unverified in this migration. A teammate must review and merge this PR.
+
+## Kieran’s Profile panel
+
+Open the Profile tab to see the stored display name, biography and avatar. **Edit Profile** opens a form, **Save** validates (name required and at most 30 characters, biography at most 300, avatar empty or an existing .png/.jpg/.jpeg) and shows errors next to each field, **Cancel** discards edits. Profiles are saved to `data/profiles.json` (gitignored) and reload after a restart. Until login exists, the profile belongs to the placeholder user `demo-user`, set in one place in `app/ProfileModule`.
+
+See [profile use case, class and sequence diagrams, and design decisions](docs/KIERAN_PROFILE.md). Change Appearance (theme, font size) is the planned stretch use case.
 
 ## Migration tracking
 
