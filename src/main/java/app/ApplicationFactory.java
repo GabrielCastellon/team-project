@@ -17,7 +17,7 @@ public final class ApplicationFactory {
             new InMemorySessionManager();
 
     public ApplicationFactory() {
-        this(DiscoveryModule::createPanel);
+        this.discoveryFactory = () -> DiscoveryModule.createPanel(sessionManager);
     }
 
     // Composition seam for an isolated shell integration test with real discovery wiring.
