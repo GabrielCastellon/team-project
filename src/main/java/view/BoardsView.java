@@ -3,7 +3,7 @@ package view;
 import interface_adapter.boards.BoardsState;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.boards.BoardsViewModelListener;
-import interface_adapter.create_board.CreateBoardController;
+import interface_adapter.create_boards.CreateBoardController;
 import interface_adapter.view_boards.ViewBoardsController;
 
 import javax.swing.DefaultListModel;

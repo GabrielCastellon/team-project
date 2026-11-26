@@ -3,7 +3,7 @@ package data_access;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import entity.Board;
-import use_case.create_board.BoardDataAccessInterface;
+import use_case.create_boards.BoardDataAccessInterface;
 import use_case.view_boards.ViewBoardsDataAccessInterface;
 
 import java.io.IOException;

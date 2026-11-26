@@ -1,4 +1,4 @@
-package use_case.create_board;
+package use_case.create_boards;
 
 import entity.Board;
 import entity.BoardFactory;

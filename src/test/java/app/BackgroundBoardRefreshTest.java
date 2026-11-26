@@ -2,10 +2,10 @@ package app;
 
 import entity.Board;
 import interface_adapter.boards.BoardsViewModel;
-import interface_adapter.create_board.CreateBoardPresenter;
+import interface_adapter.create_boards.CreateBoardPresenter;
 import interface_adapter.discovery.TaskRunner;
 import org.junit.jupiter.api.Test;
-import use_case.create_board.CreateBoardOutputData;
+import use_case.create_boards.CreateBoardOutputData;
 import use_case.view_boards.ViewBoardsInputData;
 
 import java.util.ArrayList;

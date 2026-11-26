@@ -1,9 +1,9 @@
-package interface_adapter.create_board;
+package interface_adapter.create_boards;
 
 import interface_adapter.boards.BoardsState;
 import interface_adapter.boards.BoardsViewModel;
-import use_case.create_board.CreateBoardOutputBoundary;
-import use_case.create_board.CreateBoardOutputData;
+import use_case.create_boards.CreateBoardOutputBoundary;
+import use_case.create_boards.CreateBoardOutputData;
 
 public class CreateBoardPresenter implements CreateBoardOutputBoundary {
     private final BoardsViewModel viewModel;
