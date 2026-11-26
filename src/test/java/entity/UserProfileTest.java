@@ -31,6 +31,13 @@ public class UserProfileTest {
                 () -> new UserProfile(null, "Kieran", "", "", null));
     }
 
+    //BR: userId identifies the profile, so blank is rejected the same as null (Kevin's review comment)
+    @Test
+    void rejectBlankUserId() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new UserProfile("   ", "Kieran", "", "", null));
+    }
+
     //BR: displayName is required; blank/length rules belong to the interactor, not the entity
     @Test
     void rejectNullDisplayName() {
