@@ -1,5 +1,6 @@
 package use_case.view_pins;
 
+import entity.Photo;
 import entity.Pin;
 
 import java.util.ArrayList;
@@ -27,10 +28,12 @@ public class ViewPinsInteractor implements ViewPinsInputBoundary{
             output.presentError("Could not load saved pins");
             return;
         }
-        List<String> descriptions = new ArrayList<>();
+        List<ViewPinItem> items = new ArrayList<>();
         for (Pin pin : pins){
-            descriptions.add(pin.getPhoto().description());
+            Photo photo = pin.getPhoto();
+            items.add(new ViewPinItem(photo.description(), photo.imageUrl(), photo.photographer()));
         }
-        output.presentPins(descriptions);
+        //use case output boundary
+        output.presentPins(items);
     }
 }

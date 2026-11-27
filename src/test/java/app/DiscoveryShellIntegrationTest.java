@@ -9,6 +9,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
+
+import interface_adapter.view_pins.ViewPinsPresenter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import view.DiscoveryView;
@@ -16,7 +18,6 @@ import view.MainView;
 import view.PlaceholderView;
 import app.presentation.AuthPanel;
 import static org.junit.jupiter.api.Assertions.*;
-import app.presentation.AuthPanel;
 import view.PinsView;
 import data_access.JsonPinDataAccessObject;
 import entity.Photo;
@@ -116,7 +117,10 @@ class DiscoveryShellIntegrationTest {
                         assertInstanceOf(JList.class, scroll.getViewport().getView());
 
                 assertEquals(1, pins.getModel().getSize());
-                assertEquals("Gipsy the Cat", pins.getModel().getElementAt(0));
+
+                ViewPinsPresenter.PinCard card1 = assertInstanceOf(ViewPinsPresenter.
+                                PinCard.class, pins.getModel().getElementAt(0));
+                assertEquals("Gipsy the Cat", card1.description());
 
                 shell.selectTab("Accounts"); //goes to accounts
                 session.logout();
@@ -124,7 +128,9 @@ class DiscoveryShellIntegrationTest {
                 shell.selectTab("Pins");
                 //switches account and checks for expected pins of second user
                 assertEquals(1, pins.getModel().getSize());
-                assertEquals("Bedroom", pins.getModel().getElementAt(0));
+                ViewPinsPresenter.PinCard card2 = assertInstanceOf(ViewPinsPresenter.PinCard.class,
+                        pins.getModel().getElementAt(0));
+                assertEquals("Bedroom", card2.description());
             } finally {
                 shell.removeNotify();
             }
