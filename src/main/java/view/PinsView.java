@@ -11,6 +11,8 @@ import java.util.Map;
 import interface_adapter.view_pins.ViewPinsPresenter;
 import interface_adapter.view_pins.ViewPinsPresenter.PinCard;
 import interface_adapter.discovery.DiscoveryPresenter.ThumbnailLoader;
+import java.util.HashSet;
+import java.util.Set;
 
 /*View saved pins then display the current user's collection. End of Part 3 in sequence UML marks
 selected photo saved. Opening pins - PinsView.showPins(...) puts their descriptions on screen.
@@ -26,6 +28,8 @@ public class PinsView extends JPanel implements ViewPinsPresenter.View {
     //maps icon to photo URL
     private Map<String, ImageIcon> thumbnails = new HashMap<>();
     private final SwingTaskRunner<ImageIcon> thumbnailTasks = new SwingTaskRunner<>();
+    //checks if photo url is already downloading
+    private final Set<String> loadingUrls = new HashSet<>();
 
     //Swing view for card for each pin
     public PinsView(ThumbnailLoader thumbnailLoader){
@@ -105,11 +109,26 @@ public class PinsView extends JPanel implements ViewPinsPresenter.View {
 
         for (PinCard item: items){
             String url = item.imageURL();
+            //skip a download that is already running; handles duplicate download
+            if(loadingUrls.contains(url)){
+                continue;
+            }
+            loadingUrls.add(url); //records loading photo
             thumbnailTasks.run(
                     () -> loadThumbnail(url), //SwingTaskRunner downloads and scales photo
                     (icon, error) -> {
-                        currentThumbnails.put(url, icon); //maps url to icon when job finished
-                        repaint(); //asks Swing to draw the card again rendering the thumbnail
+                        loadingUrls.remove(url); //removes url once attempt is finished
+                        //checks if card currently on screen still needs this url
+                        for (int row = 0; row<pins.size(); row++){
+                            PinCard card = pins.getElementAt(row);
+                            if(url.equals(card.imageURL())){
+                                thumbnails.put(url,icon);//maps url to icon when job finished
+                                //asks Swing to draw the card again rendering the thumbnail
+                                repaint();
+                                break;
+                            }
+                        }
+
                     }
             );
         }
