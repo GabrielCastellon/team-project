@@ -80,9 +80,12 @@ public class JsonPinDataAccessObject implements PinDataAccessInterface, ViewPins
                 /*JsonElement might represent a JSON object, array, number, string, boolean or null.
                 So this checks object's runtime type before subclass functionality
                  */
-                if(!(element instanceof JsonObject pin) ||
-                !hasString(pin, "ownerId") || !(pin.get("photo") instanceof JsonObject photo) ||
-                !hasString(photo, "id")) {
+                if (!(element instanceof JsonObject pin) ||
+                    !hasString(pin, "pinId") ||
+                    pin.get("pinId").getAsString().isBlank() ||
+                    !hasString(pin, "ownerId") ||
+                    !(pin.get("photo") instanceof JsonObject photo) ||
+                    !hasString(photo, "id")) {
                     throw new IllegalStateException("Saved pin is " +
                             "missing a valid owner or photo ID");
                 }

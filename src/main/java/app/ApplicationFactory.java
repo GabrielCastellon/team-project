@@ -22,17 +22,28 @@ import data_access.ImageLoader;
 /** Composition root. Replace only your feature's factory when integrating a use case. */
 public final class ApplicationFactory {
     private final Supplier<JPanel> discoveryFactory;
-    private final SessionManager sessionManager =
-            new InMemorySessionManager();
+    private final SessionManager sessionManager;
+    private static final Path DEFAULT_PINS_FILE = Path.of("data","pins.json");
+    private final Path pinsFile;
+
 
     public ApplicationFactory() {
-        this.discoveryFactory = () -> DiscoveryModule.createPanel(sessionManager);
+        this(new InMemorySessionManager(), DEFAULT_PINS_FILE);
     }
 
     // Composition seam for an isolated shell integration test with real discovery wiring.
+    ApplicationFactory(SessionManager sessionManager, Path pinsFile) {
+        this.sessionManager = sessionManager;
+        this.pinsFile = pinsFile;
+        this.discoveryFactory = () -> DiscoveryModule.createPanel(sessionManager);
+    }
+
     ApplicationFactory(Supplier<JPanel> discoveryFactory) {
         this.discoveryFactory = java.util.Objects.requireNonNull(discoveryFactory);
+        this.sessionManager = new InMemorySessionManager();
+        this.pinsFile = DEFAULT_PINS_FILE;
     }
+
     public MainView createView() {
         Map<String, Supplier<JPanel>> features = new LinkedHashMap<>();
         features.put("Accounts",
@@ -53,8 +64,7 @@ public final class ApplicationFactory {
          */
         PinsView view = new PinsView(images::load);
         ViewPinsPresenter presenter = new ViewPinsPresenter(view);
-        JsonPinDataAccessObject storage = new JsonPinDataAccessObject(Path.of("data",
-                "pins.json"));
+        JsonPinDataAccessObject storage = new JsonPinDataAccessObject(pinsFile);
         ViewPinsInteractor interactor = new ViewPinsInteractor(storage, presenter);
         ViewPinsController controller = new ViewPinsController(interactor);
 

@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import entity.Photo;
-import use_case.save_pin.SavePinInteractor;
 
 import javax.swing.*;
 
