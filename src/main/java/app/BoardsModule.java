@@ -81,7 +81,12 @@ public final class BoardsModule {
         CreateBoardController controller =
                 new CreateBoardController(backgroundCreate);
 
-        BoardsView boardsView = new BoardsView(controller, viewModel);
+        ViewBoardsController viewController =
+                new ViewBoardsController(refresh);
+
+        BoardsView boardsView =
+                new BoardsView(controller, viewModel, viewController);
+
         boardsView.addHierarchyListener(event -> {
             boolean showingChanged =
                     (event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0;
