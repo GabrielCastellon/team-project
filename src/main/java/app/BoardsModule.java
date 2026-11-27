@@ -2,6 +2,9 @@ package app;
 
 import data_access.JsonBoardDataAccessObject;
 import entity.BoardFactory;
+import entity.SessionManager;
+import entity.User;
+import java.awt.event.HierarchyEvent;
 import interface_adapter.create_board.BoardsViewModel;
 import interface_adapter.create_board.CreateBoardController;
 import interface_adapter.create_board.CreateBoardPresenter;
@@ -13,13 +16,14 @@ import use_case.create_board.CreateBoardOutputData;
 import view.SwingTaskRunner;
 import view.BoardsView;
 
+import javax.swing.*;
 import java.nio.file.Path;
 
 public final class BoardsModule {
     private BoardsModule() {
     }
 
-    public static BoardsView createPanel() {
+    public static JPanel createPanel(SessionManager sessionManager) {
         Path file = Path.of("data", "boards.json");
         BoardsViewModel viewModel = new BoardsViewModel();
         CreateBoardPresenter presenter = new CreateBoardPresenter(viewModel);
@@ -74,7 +78,20 @@ public final class BoardsModule {
                 new CreateBoardController(backgroundCreate);
 
         BoardsView boardsView = new BoardsView(controller, viewModel);
-        boardsView.setCurrentUserId("demo-user"); // Later replace with user ID once login is integrated.
+        boardsView.addHierarchyListener(event -> {
+            boolean showingChanged =
+                    (event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0;
+
+            if (showingChanged && boardsView.isShowing()) {
+                User user = sessionManager.getCurrentUser();
+
+                if (user != null) {
+                    boardsView.setCurrentUserId(user.getId());
+                } else {
+                    boardsView.setCurrentUserId(null);
+                }
+            }
+        });
 
         return boardsView;
     }
