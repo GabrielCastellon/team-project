@@ -102,6 +102,13 @@ class DiscoveryServiceTest {
     }
 
     @Test
+    void ranksFromSuppliedPhotosWithoutReadingDemoPreferences() throws Exception {
+        List<Photo> candidates = List.of(photo("x"), photo("b"), photo("y"), photo("z"));
+        assertEquals(List.of("y", "z", "x"), ids(service.recommendFromPhotos(candidates, List.of(photo("b")))));
+        assertEquals(0, loads);
+    }
+
+    @Test
     void mixerChangesRankingAndEndpointsAllowEmptyInactiveBoard() throws Exception {
         List<Photo> candidates = List.of(photo("x"), photo("y"));
         assertEquals("x", service.mix(candidates, "A", "B", .7).get(0).photo().id());

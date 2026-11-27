@@ -22,6 +22,8 @@ Open the Discovery tab after launch. It starts in `rgb-histogram-64-v1` mode unl
 
 ## Demo workflow
 
+To use the same photos as the **Pins** tab, sign in, search, and **Save** one or more results. Select **Recommend from My Pins** to rank the current search page using your account's saved photos. Photos you already saved are excluded. The A/B demo below uses its own preference samples.
+
 1. Search `bedroom`. Pick orientation and relevance/latest order; change Page and Search to browse further.
 2. Like several results into A. Search another style and like images into B. These are preference samples, separate from your teammates' saved pins.
 3. Search a fresh candidate page, then Recommend A. Already-liked images are excluded.

@@ -1,15 +1,20 @@
 package interface_adapter.discovery;
 
 import entity.Photo;
+import entity.Pin;
 
 import interface_adapter.discovery.DiscoveryPresenter.Card;
 import interface_adapter.discovery.DiscoveryPresenter.ThumbnailLoader;
 import interface_adapter.discovery.DiscoveryPresenter.View;
 
 import use_case.discovery.DiscoveryInputBoundary;
+import use_case.view_pins.ViewPinsDataAccessInterface;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 public final class DiscoveryController {
 
@@ -49,6 +54,25 @@ public final class DiscoveryController {
         run(
                 () -> presenter.scored(service.recommend(requireCandidates(), a)),
                 "Best matches first; saved images excluded.");
+    }
+
+    public void recommendFromPins(Supplier<String> currentOwner, ViewPinsDataAccessInterface savedPins) {
+        String ownerId = currentOwner.get();
+        if (ownerId == null) {
+            presenter.status("Sign in to recommend from your saved pins.");
+            return;
+        }
+        run(
+                () -> {
+                    List<Photo> results = requireCandidates();
+                    List<Photo> photos = savedPins.findByOwnerId(ownerId).stream().map(Pin::getPhoto).toList();
+                    if (photos.isEmpty()) {
+                        throw new IllegalArgumentException("Save a pin to get recommendations from My Pins");
+                    }
+                    return presenter.scored(service.recommendFromPhotos(results, photos));
+                },
+                "Recommended from your pins. Already saved images are excluded.",
+                () -> Objects.equals(ownerId, currentOwner.get()));
     }
 
     public void mix(String a, String b, double weight) {
@@ -101,6 +125,10 @@ public final class DiscoveryController {
     }
 
     private void run(Callable<List<Card>> task, String message) {
+        run(task, message, () -> true);
+    }
+
+    private void run(Callable<List<Card>> task, String message, BooleanSupplier stillCurrent) {
         if (working) {
             return;
         }
@@ -109,7 +137,9 @@ public final class DiscoveryController {
         presenter.status("Working…");
         tasks.run(task, (result, failure) -> {
             try {
-                if (failure instanceof InterruptedException) {
+                if (!stillCurrent.getAsBoolean()) {
+                    presenter.status("Account changed. Request recommendations again.");
+                } else if (failure instanceof InterruptedException) {
                     presenter.status("Cancelled");
                 } else if (failure != null) {
                     String detail = failure.getMessage();
