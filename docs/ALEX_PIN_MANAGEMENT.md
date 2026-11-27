@@ -4,7 +4,7 @@
 
 ## Scope and status
 
-Status: Design stage/not implemented
+Status: Saving photos from Discovery and viewing the signed-in user's saved pins are implemented on main. Thumbnail cards are in PR #37.
 MVP use case: Save Pins
 Planned use cases: View saved pins, edit pin details, seach/filter saved pins
 
