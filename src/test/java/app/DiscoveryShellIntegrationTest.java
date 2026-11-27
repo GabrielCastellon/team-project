@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import view.DiscoveryView;
 import view.MainView;
 import view.PlaceholderView;
+import app.presentation.AuthPanel;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Exercises the real module inside the shared shell without credentials or HTTP calls. */
@@ -35,7 +36,7 @@ class DiscoveryShellIntegrationTest {
             JTabbedPane tabs = (JTabbedPane) shell.getComponent(0);
             assertEquals(5, tabs.getTabCount());
             assertEquals(0, initializations.get());
-            assertInstanceOf(PlaceholderView.class, content(tabs));
+            assertInstanceOf(AuthPanel.class, content(tabs));
             tabs.setSelectedIndex(tabs.indexOfTab("Discovery"));
             JPanel discovery = content(tabs);
             assertInstanceOf(DiscoveryView.class, discovery);
@@ -57,7 +58,7 @@ class DiscoveryShellIntegrationTest {
             tabs.setSelectedIndex(tabs.indexOfTab("Discovery"));
             assertTrue(containsLabel((Container) tabs.getSelectedComponent(), "UNSPLASH_ACCESS_KEY"));
             tabs.setSelectedIndex(tabs.indexOfTab("Accounts"));
-            assertInstanceOf(PlaceholderView.class, content(tabs));
+            assertInstanceOf(AuthPanel.class, content(tabs));
             tabs.setSelectedIndex(tabs.indexOfTab("Pins"));
             assertInstanceOf(PlaceholderView.class, content(tabs));
         });
