@@ -1,58 +1,174 @@
 package view;
 
+import app.presentation.PhotofyTheme;
 import interface_adapter.boards.BoardsState;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.boards.BoardsViewModelListener;
 import interface_adapter.create_board.CreateBoardController;
 import interface_adapter.view_boards.ViewBoardsController;
 
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import java.awt.BorderLayout;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 import java.awt.event.HierarchyEvent;
+import java.util.Objects;
 
 public class BoardsView extends JPanel implements BoardsViewModelListener {
+
+    private static final int CARD_WIDTH = 240;
+    private static final int CARD_HEIGHT = 200;
+    private static final int CARD_GAP = 20;
+
     private final CreateBoardController createBoardController;
     private final ViewBoardsController viewBoardsController;
     private final BoardsViewModel viewModel;
-    private final DefaultListModel<String> boardNames = new DefaultListModel<>();
-    private final JButton createButton = new JButton("Create Board");
+
+    private final JPanel boardsPanel = new JPanel();
+    private final JButton createButton = new JButton("+ Create board");
+
     private String currentUserId;
 
-    public BoardsView(CreateBoardController createBoardController, BoardsViewModel viewModel, ViewBoardsController viewBoardsController) {
+    public BoardsView(
+            CreateBoardController createBoardController,
+            BoardsViewModel viewModel,
+            ViewBoardsController viewBoardsController) {
+
         super(new BorderLayout());
+
         this.createBoardController = createBoardController;
         this.viewModel = viewModel;
         this.viewBoardsController = viewBoardsController;
 
-        createButton.setEnabled(false);
-        createButton.addActionListener(event -> showCreateBoardDialog());
+        setBackground(PhotofyTheme.BACKGROUND);
 
-        add(createButton, BorderLayout.NORTH);
-        add(new JScrollPane(new JList<>(boardNames)), BorderLayout.CENTER);
+        configureCreateButton();
+        configureBoardsPanel();
+
+        add(createHeader(), BorderLayout.NORTH);
+        add(createScrollPane(), BorderLayout.CENTER);
 
         viewModel.addListener(this);
+
         addHierarchyListener(event -> {
-            if ((event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
+            if ((event.getChangeFlags()
+                    & HierarchyEvent.SHOWING_CHANGED) != 0
+                    && isShowing()) {
                 onBoardsOpened();
             }
         });
+
         stateChanged();
     }
 
+    private void configureCreateButton() {
+        createButton.setFont(PhotofyTheme.BUTTON);
+        createButton.setForeground(Color.WHITE);
+        createButton.setBackground(PhotofyTheme.RED);
+        createButton.setFocusPainted(false);
+        createButton.setBorderPainted(false);
+        createButton.setOpaque(true);
+        createButton.setBorder(new EmptyBorder(12, 20, 12, 20));
+        createButton.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        createButton.setEnabled(false);
+
+        createButton.addActionListener(event ->
+                showCreateBoardDialog());
+    }
+
+    private JPanel createHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(PhotofyTheme.BACKGROUND);
+        header.setBorder(new EmptyBorder(28, 32, 24, 32));
+
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(
+                new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
+
+        JLabel title = new JLabel("Your boards");
+        title.setFont(PhotofyTheme.HEADING);
+        title.setForeground(PhotofyTheme.TEXT);
+
+        JLabel subtitle = new JLabel(
+                "Collect and organize your inspiration.");
+        subtitle.setFont(PhotofyTheme.BODY);
+        subtitle.setForeground(new Color(110, 110, 110));
+
+        textPanel.add(title);
+        textPanel.add(Box.createVerticalStrut(6));
+        textPanel.add(subtitle);
+
+        JPanel buttonPanel = new JPanel(new GridBagLayout());
+        buttonPanel.setOpaque(false);
+        buttonPanel.add(createButton);
+
+        header.add(textPanel, BorderLayout.WEST);
+        header.add(buttonPanel, BorderLayout.EAST);
+
+        return header;
+    }
+
+    private void configureBoardsPanel() {
+        boardsPanel.setLayout(
+                new GridLayout(0, 3, CARD_GAP, CARD_GAP));
+        boardsPanel.setBackground(PhotofyTheme.BACKGROUND);
+    }
+
+    private JScrollPane createScrollPane() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(PhotofyTheme.BACKGROUND);
+        wrapper.setBorder(new EmptyBorder(0, 32, 32, 32));
+
+        wrapper.add(boardsPanel, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(wrapper);
+
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(
+                PhotofyTheme.BACKGROUND);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        scrollPane.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        scrollPane.getViewport().addComponentListener(
+                new java.awt.event.ComponentAdapter() {
+                    @Override
+                    public void componentResized(
+                            java.awt.event.ComponentEvent event) {
+
+                        int width = scrollPane.getViewport()
+                                .getWidth() - 64;
+
+                        int columns = Math.max(
+                                1,
+                                (width + CARD_GAP)
+                                        / (CARD_WIDTH + CARD_GAP));
+
+                        ((GridLayout) boardsPanel.getLayout())
+                                .setColumns(columns);
+
+                        boardsPanel.revalidate();
+                    }
+                });
+
+        return scrollPane;
+    }
+
     public void setCurrentUserId(String userId) {
-        if (!java.util.Objects.equals(currentUserId, userId)) {
+        if (!Objects.equals(currentUserId, userId)) {
             currentUserId = userId;
             viewModel.resetForAccountChange();
+
             if (isShowing()) {
                 onBoardsOpened();
             }
         }
-        createButton.setEnabled(userId != null && !userId.isBlank());
+
+        createButton.setEnabled(
+                userId != null && !userId.isBlank());
     }
 
     private void onBoardsOpened() {
@@ -62,25 +178,134 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     }
 
     private void showCreateBoardDialog() {
-        String name = JOptionPane.showInputDialog(this, "Enter a board name:");
+        String name = JOptionPane.showInputDialog(
+                this,
+                "Enter a board name:",
+                "Create board",
+                JOptionPane.PLAIN_MESSAGE);
 
         if (name != null) {
             createBoardController.execute(currentUserId, name);
         }
     }
 
+    private JPanel createBoardCard(String name) {
+        JPanel card = new JPanel(new BorderLayout(0, 8));
+
+        card.setOpaque(false);
+        card.setPreferredSize(
+                new Dimension(CARD_WIDTH, CARD_HEIGHT));
+
+        card.add(createBoardCover(), BorderLayout.CENTER);
+
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setFont(
+                PhotofyTheme.BUTTON.deriveFont(16f));
+        nameLabel.setForeground(PhotofyTheme.TEXT);
+        nameLabel.setBorder(new EmptyBorder(0, 4, 8, 4));
+
+        card.add(nameLabel, BorderLayout.SOUTH);
+
+        return card;
+    }
+
+    private JPanel createBoardCover() {
+        return new JPanel() {
+            {
+                setOpaque(false);
+                setPreferredSize(new Dimension(240, 160));
+            }
+
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                super.paintComponent(graphics);
+
+                Graphics2D g = (Graphics2D) graphics.create();
+
+                g.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int width = getWidth();
+                int height = getHeight();
+
+                g.setClip(new java.awt.geom.RoundRectangle2D.Double(
+                        0, 0, width, height, 24, 24));
+
+                int split = (int) (width * 0.65);
+
+                g.setColor(new Color(225, 222, 219));
+                g.fillRect(0, 0, split - 2, height);
+
+                g.setColor(new Color(215, 212, 209));
+                g.fillRect(split, 0, width - split,
+                        height / 2 - 2);
+
+                g.setColor(new Color(233, 230, 227));
+                g.fillRect(split, height / 2,
+                        width - split, height / 2);
+
+                g.dispose();
+            }
+        };
+    }
+
+    private JPanel createEmptyState() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(50, 0, 50, 0));
+
+        boolean signedIn =
+                currentUserId != null && !currentUserId.isBlank();
+
+        JLabel title = new JLabel(
+                signedIn ? "No boards yet" : "Sign in to view your boards");
+
+        title.setFont(PhotofyTheme.HEADING);
+        title.setForeground(PhotofyTheme.TEXT);
+
+        JLabel description = new JLabel(
+                signedIn
+                        ? "Create your first board to get started."
+                        : "Your saved boards will appear here.");
+
+        description.setFont(PhotofyTheme.BODY);
+        description.setForeground(Color.GRAY);
+
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        description.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        panel.add(title);
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(description);
+
+        return panel;
+    }
+
     @Override
     public void stateChanged() {
         BoardsState state = viewModel.getState();
 
-        boardNames.clear();
-        for (String name : state.getBoards().values()) {
-            boardNames.addElement(name);
+        boardsPanel.removeAll();
+
+        if (state.getBoards().isEmpty()) {
+            boardsPanel.add(createEmptyState());
+        } else {
+            for (String name : state.getBoards().values()) {
+                boardsPanel.add(createBoardCard(name));
+            }
         }
 
+        boardsPanel.revalidate();
+        boardsPanel.repaint();
+
         if (!state.getErrorMessage().isEmpty()) {
-            JOptionPane.showMessageDialog(this, state.getErrorMessage(),
-                    "Boards", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    state.getErrorMessage(),
+                    "Boards",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 }
