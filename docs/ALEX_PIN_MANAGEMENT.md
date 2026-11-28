@@ -36,7 +36,25 @@ Save Pins (Issue #) - 11/14/2026
    saved status
 8. User opens the Pins tab to view their personal collection. The saved cat photo appears as a thumbnail
    with a caption and photographer credit. After the duplicate save attempt, the cat still appears only once.
-9. Switching to a second account that never saved the cat photo would not display the photo in the Pins tab. 
+9. Switching to a second account that never saved the cat photo would not display the photo in the Pins tab.
+
+### Demo screenshots
+
+<p>
+  <a href="https://github.com/user-attachments/assets/5914cace-efb3-482b-b588-73c7cbc866ee"><img src="https://github.com/user-attachments/assets/5914cace-efb3-482b-b588-73c7cbc866ee" width="220" alt="Demo screenshot 1"></a>
+  <a href="https://github.com/user-attachments/assets/ea2ccd68-3e60-4e93-90a9-0348f774024a"><img src="https://github.com/user-attachments/assets/ea2ccd68-3e60-4e93-90a9-0348f774024a" width="220" alt="Demo screenshot 2"></a>
+  <a href="https://github.com/user-attachments/assets/bf4a804e-0e02-4ec4-a2bb-608e2281be46"><img src="https://github.com/user-attachments/assets/bf4a804e-0e02-4ec4-a2bb-608e2281be46" width="220" alt="Demo screenshot 3"></a>
+</p>
+
+<p>
+  <a href="https://github.com/user-attachments/assets/8892f2b2-0c4b-4688-bfbe-2659885b2fc9"><img src="https://github.com/user-attachments/assets/8892f2b2-0c4b-4688-bfbe-2659885b2fc9" width="220" alt="Demo screenshot 4"></a>
+  <a href="https://github.com/user-attachments/assets/19f8a508-21b2-450e-84e2-e93da4588a9e"><img src="https://github.com/user-attachments/assets/19f8a508-21b2-450e-84e2-e93da4588a9e" width="220" alt="Demo screenshot 5"></a>
+  <a href="https://github.com/user-attachments/assets/f5034581-311b-4611-9746-8908a4dd06dc"><img src="https://github.com/user-attachments/assets/f5034581-311b-4611-9746-8908a4dd06dc" width="220" alt="Demo screenshot 6"></a>
+</p>
+
+<p>
+  <a href="https://github.com/user-attachments/assets/ec41fc78-8781-4b97-9793-28fee30455df"><img src="https://github.com/user-attachments/assets/ec41fc78-8781-4b97-9793-28fee30455df" width="220" alt="Demo screenshot 7"></a>
+</p>
 
 ## Use Case: Save Pin
 
