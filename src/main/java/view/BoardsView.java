@@ -1,6 +1,8 @@
 package view;
 
 import interface_adapter.boards.BoardsState;
+import interface_adapter.edit_boards.EditBoardController;
+import interface_adapter.edit_boards.EditBoardEditorState;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.boards.BoardsViewModelListener;
 import interface_adapter.create_boards.CreateBoardController;
@@ -31,6 +33,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     private final BoardsViewModel viewModel;
 
     private final OpenBoardController openBoardController;
+    private final EditBoardController editBoardController;
+    private EditBoardEditorState shownEditor;
+    private final ThumbnailLoader editThumbnails;
+    private boolean addPinsOnly;
+    private List<String> originalEditorPins;
     private final CardLayout screens = new CardLayout();
     private final BoardDetailView detail;
     private OpenedBoard displayedBoard;
@@ -70,14 +77,22 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
             BoardsViewModel viewModel,
             ViewBoardsController viewBoardsController, OpenBoardController openBoardController,
             ThumbnailLoader thumbnails) {
+        this(createBoardController, viewModel, viewBoardsController, openBoardController, thumbnails, null);
+    }
 
+    public BoardsView(CreateBoardController createBoardController, BoardsViewModel viewModel,
+                      ViewBoardsController viewBoardsController, OpenBoardController openBoardController,
+                      ThumbnailLoader thumbnails, EditBoardController editBoardController) {
         super();
+        this.editBoardController = editBoardController;
+        this.editThumbnails = thumbnails;
         setLayout(screens);
         this.openBoardController = openBoardController;
         this.detail = new BoardDetailView(thumbnails, () -> {
             viewModel.getState().clearOpenedBoard();
             viewModel.notifyStateChanged();
-        });
+        }, editBoardController == null ? null : () -> beginEdit(false),
+                editBoardController == null ? null : () -> beginEdit(true));
 
         this.createBoardController = createBoardController;
         this.viewModel = viewModel;
@@ -240,6 +255,45 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         }
     }
 
+    private void beginEdit(boolean addOnly) {
+        BoardsState state = viewModel.getState();
+        OpenedBoard board = state.getOpenedBoard();
+        if (board != null && currentUserId != null && editBoardController != null
+                && state.getEditor() == null) {
+            addPinsOnly = addOnly;
+            originalEditorPins = null;
+            editBoardController.load(currentUserId, board.id());
+        }
+    }
+
+    private void showEditBoardDialog(EditBoardEditorState editor) {
+        BoardsState state = viewModel.getState();
+        OpenedBoard board = state.getOpenedBoard();
+        String owner = currentUserId;
+        if (state.getEditor() != editor || board == null || !board.id().equals(editor.boardId())) {
+            return;
+        }
+        if (originalEditorPins == null) {
+            originalEditorPins = List.copyOf(editor.selectedPinIds());
+        }
+        EditBoardDialog dialog = new EditBoardDialog();
+        boolean confirmed = dialog.show(this, editor, addPinsOnly, originalEditorPins, editThumbnails);
+        state = viewModel.getState();
+        if (!Objects.equals(owner, currentUserId) || state.getEditor() != editor) {
+            return;
+        }
+        if (!confirmed) {
+            state.clearEditor();
+            shownEditor = null;
+            return;
+        }
+        var draft = new EditBoardEditorState(editor.boardId(), dialog.getName(),
+                editor.availablePins(), dialog.getSelectedPinIds());
+        state.setEditor(draft);
+        shownEditor = draft;
+        editBoardController.save(owner, editor.boardId(), draft.name(), draft.selectedPinIds());
+    }
+
     private void showCreateBoardDialog() {
         String name = JOptionPane.showInputDialog(
                 this,
@@ -386,11 +440,16 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         displayedBoard = board;
 
         if (!state.getErrorMessage().isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    state.getErrorMessage(),
-                    "Boards",
-                    JOptionPane.ERROR_MESSAGE);
+            String error = state.getErrorMessage();
+            state.setError("");
+            JOptionPane.showMessageDialog(this, error, "Boards", JOptionPane.ERROR_MESSAGE);
+        }
+        EditBoardEditorState editor = viewModel.getState().getEditor();
+        if (editor == null) {
+            shownEditor = null;
+        } else if (editBoardController != null && editor != shownEditor) {
+            shownEditor = editor;
+            SwingUtilities.invokeLater(() -> showEditBoardDialog(editor));
         }
     }
 

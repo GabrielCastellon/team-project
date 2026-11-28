@@ -25,6 +25,14 @@ final class BoardDetailView extends JPanel {
     private int total;
 
     BoardDetailView(ThumbnailLoader thumbnails, Runnable goBack) {
+        this(thumbnails, goBack, null);
+    }
+
+    BoardDetailView(ThumbnailLoader thumbnails, Runnable goBack, Runnable editBoard) {
+        this(thumbnails, goBack, editBoard, editBoard);
+    }
+
+    BoardDetailView(ThumbnailLoader thumbnails, Runnable goBack, Runnable editBoard, Runnable addPins) {
         super(new BorderLayout(0, 20));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(24, 32, 24, 32));
@@ -33,7 +41,7 @@ final class BoardDetailView extends JPanel {
         JPanel header = new JPanel();
         header.setOpaque(false);
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        JButton back = new JButton("‹   Boards") {
+        JButton back = new JButton("â€¹   Boards") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D p = smooth(g);
                 p.setColor(getModel().isRollover() || isFocusOwner() ? new Color(225, 224, 220) : new Color(243, 242, 239));
@@ -64,6 +72,18 @@ final class BoardDetailView extends JPanel {
         header.add(title);
         header.add(Box.createVerticalStrut(4));
         header.add(count);
+        if (editBoard != null) {
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
+            actions.setOpaque(false);
+            actions.setAlignmentX(LEFT_ALIGNMENT);
+            JButton editButton = EditBoardDialog.pill("Edit board", false);
+            editButton.addActionListener(event -> editBoard.run());
+            JButton addPinsButton = EditBoardDialog.pill("+ Add pins", true);
+            addPinsButton.addActionListener(event -> addPins.run());
+            actions.add(editButton);
+            actions.add(addPinsButton);
+            header.add(actions);
+        }
         header.add(Box.createVerticalStrut(24));
         header.add(searchBox());
         add(header, BorderLayout.NORTH);
@@ -129,7 +149,9 @@ final class BoardDetailView extends JPanel {
         search.setFont(PhotofyTheme.FIELD);
         search.setOpaque(false);
         search.setBorder(null);
-        search.getAccessibleContext().setAccessibleName("Search this board");
+        if (!GraphicsEnvironment.isHeadless()) {
+            search.getAccessibleContext().setAccessibleName("Search this board");
+        }
         search.addFocusListener(new FocusAdapter() {
             public void focusGained(FocusEvent event) { box.repaint(); }
             public void focusLost(FocusEvent event) { box.repaint(); }

@@ -6,6 +6,8 @@ import data_access.ImageLoader;
 import interface_adapter.open_boards.OpenBoardController;
 import interface_adapter.open_boards.OpenBoardPresenter;
 import entity.BoardFactory;
+import interface_adapter.edit_boards.EditBoardController;
+import interface_adapter.edit_boards.EditBoardPresenter;
 import entity.SessionManager;
 import entity.User;
 import java.awt.event.HierarchyEvent;
@@ -93,8 +95,11 @@ public final class BoardsModule {
 
         OpenBoardController openController = new OpenBoardController(new BackgroundOpenBoard(
                 boardDAO, new JsonPinDataAccessObject(pinsFile), new OpenBoardPresenter(viewModel), viewModel, runner));
+        EditBoardController editController = new EditBoardController(new BackgroundEditBoard(
+                boardDAO, new JsonPinDataAccessObject(pinsFile), new EditBoardPresenter(viewModel),
+                viewModel, new SwingTaskRunner<>(), refresh));
         BoardsView boardsView = new BoardsView(controller, viewModel, viewController, openController,
-                new ImageLoader()::load);
+                new ImageLoader()::load, editController);
 
         boardsView.addHierarchyListener(event -> {
             boolean showingChanged =
