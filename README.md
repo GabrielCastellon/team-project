@@ -8,7 +8,7 @@ The planned application lets people discover images, save pins to boards, and ge
 
 ## Current status
 
-The application uses the **shared foundation**: a runnable Java 17 Swing window with Accounts, Pins, and Profile placeholders plus Kevin’s Discovery panel and the Boards panel. Kevin’s discovery implementation is proposed here for teammate review, and the Boards panel supports Create Board, with Accounts integration pending; the other owners’ features remain pending. It starts without API keys or local data. Kevin’s previous discovery module is preserved in Git history and the migration backup; this feature branch restores it on the foundation. Discovery uses Unsplash and JSON preference snapshots; placeholders do not implement API or persistence behavior.
+The application uses the **shared foundation**: a runnable Java 17 Swing window with Accounts and Pins placeholders plus Kevin’s Discovery panel, the Boards panel and Kieran’s Profile panel. Kevin’s discovery implementation is proposed here for teammate review, and the Boards panel supports Create Board, with Accounts integration pending; the other owners’ features remain pending. It starts without API keys or local data. Kevin’s previous discovery module is preserved in Git history and the migration backup; this feature branch restores it on the foundation. Discovery uses Unsplash and JSON preference snapshots; placeholders do not implement API or persistence behavior.
 
 ## User stories and ownership
 
@@ -32,7 +32,7 @@ The application uses the **shared foundation**: a runnable Java 17 Swing window 
 | Gabriel | Create Board (5.1) | Create a named board and see it appear in my board list | Implemented on this branch; signed-in account integration pending |
 | Gabriel | View Boards (5.2) | See all boards belonging to my account | Implemented on this branch, pending Accounts integration  |
 | Gabriel | Open Board (5.3) | Select a board and see its name and saved pins | Implemented on this branch  |
-| Kieran, coordinating with Matthew | Customize profile | Edit personal display and appearance settings | Placeholder |
+| Kieran, coordinating with Matthew | Edit profile | View and edit display name, biography and avatar, saved to local JSON | Implemented (Change Appearance stretch pending) |
 
 Kieran should own a distinct complete profile use case; coordinate the overlap with Matthew's account story so each member can demonstrate their own contribution. Detailed proposed flows and unresolved integration decisions are in [use cases](docs/USE_CASES.md). These are planning contracts for owners to confirm, not implemented teammate features.
 
@@ -72,6 +72,12 @@ Sign in, search for images, and click **Save** on a result. Click **Recommend fr
 The separate A/B demo lets you like samples, mix preferences, rank for a group, and analyze a sample collection. It stores samples under `data/discovery-preferences/`. Set `DISCOVERY_DATA_DIR` to change that location. The default model compares RGB histograms. Optional CLIP support requires a separately exported model and `CLIP_MODEL_PATH`.
 
 The two-account desktop check used the default colour model. See the [Discovery setup and model details](docs/KEVIN_DISCOVERY.md).
+
+## Kieran’s Profile panel
+
+Open the Profile tab to see your display name, bio and round profile picture (a red circle with your initial until you choose a photo). **Edit profile** opens a form where **Choose photo…** picks a picture and shows a preview, **Save** validates (name required and at most 30 characters, biography at most 300, avatar empty or an existing .png/.jpg/.jpeg) and shows errors next to each field, **Cancel** discards edits. Profiles are saved to `data/profiles.json` (gitignored) and reload after a restart. The tab shows only the signed-in user's profile: signed out, it shows "Sign in to view your profile", and it reloads after every sign-in, account switch or logout.
+
+See [profile use case, class and sequence diagrams, and design decisions](docs/KIERAN_PROFILE.md). Change Appearance (theme, font size) is the planned stretch use case.
 
 ## Migration tracking
 
