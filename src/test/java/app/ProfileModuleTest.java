@@ -12,10 +12,13 @@ import entity.UserProfile;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.function.BooleanSupplier;
+import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -24,6 +27,7 @@ import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import view.ProfileView;
 
 /** Real wiring (session → JSON DAO → interactors → presenters → view) against a temp file, no Swing window. */
 class ProfileModuleTest {
@@ -54,7 +58,7 @@ class ProfileModuleTest {
         JLabel signIn = find(panel, "signInLabel");
         assertEquals("Sign in to view your profile", signIn.getText());
         assertTrue(shown(panel, signIn));
-        assertFalse(shown(panel, button(panel, "Edit Profile")));
+        assertFalse(shown(panel, button(panel, "Edit profile")));
         assertFalse(containsLabel(panel, "Alice"));
     }
 
@@ -67,7 +71,7 @@ class ProfileModuleTest {
         JPanel panel = create(SAME_THREAD);
 
         assertEquals("Alice", this.<JLabel>find(panel, "displayNameLabel").getText());
-        assertTrue(shown(panel, button(panel, "Edit Profile")));
+        assertTrue(shown(panel, button(panel, "Edit profile")));
     }
 
     @Test
@@ -88,7 +92,7 @@ class ProfileModuleTest {
         flush();
 
         assertEquals("Alice", this.<JLabel>find(panel, "displayNameLabel").getText());
-        assertTrue(shown(panel, button(panel, "Edit Profile")));
+        assertTrue(shown(panel, button(panel, "Edit profile")));
     }
 
     @Test
@@ -98,7 +102,7 @@ class ProfileModuleTest {
         session.setCurrentUser(ALICE);
         JPanel panel = create(SAME_THREAD);
         SwingUtilities.invokeAndWait(() -> {
-            button(panel, "Edit Profile").doClick();
+            button(panel, "Edit profile").doClick();
             this.<JTextField>find(panel, "nameField").setText("Alice's unsaved edit");
         });
 
@@ -122,7 +126,7 @@ class ProfileModuleTest {
         flush();
 
         assertTrue(shown(panel, find(panel, "signInLabel")));
-        assertFalse(shown(panel, button(panel, "Edit Profile")));
+        assertFalse(shown(panel, button(panel, "Edit profile")));
         assertEquals("", this.<JLabel>find(panel, "displayNameLabel").getText());
     }
 
@@ -132,7 +136,7 @@ class ProfileModuleTest {
         JPanel panel = create(SAME_THREAD);
 
         SwingUtilities.invokeAndWait(() -> {
-            button(panel, "Edit Profile").doClick();
+            button(panel, "Edit profile").doClick();
             this.<JTextField>find(panel, "nameField").setText("Kieran");
             button(panel, "Save").doClick();
         });
@@ -145,12 +149,50 @@ class ProfileModuleTest {
     }
 
     @Test
+    void savedAvatarIsShownAsAPicture() throws Exception {
+        Path avatar = directory.resolve("me.png");
+        ImageIO.write(new BufferedImage(300, 200, BufferedImage.TYPE_INT_RGB), "png", avatar.toFile());
+        session.setCurrentUser(ALICE);
+        JPanel panel = create(SAME_THREAD);
+
+        SwingUtilities.invokeAndWait(() -> {
+            button(panel, "Edit profile").doClick();
+            this.<JTextField>find(panel, "avatarField").setText(avatar.toString());
+            button(panel, "Save").doClick();
+        });
+        flush();
+
+        JLabel picture = find(panel, "avatarLabel");
+        awaitOnEdt(() -> "Profile picture".equals(description(picture)));
+        SwingUtilities.invokeAndWait(() -> {
+            // cropped to a round picture, with no file name shown
+            assertEquals(ProfileView.AVATAR_SIZE, picture.getIcon().getIconWidth());
+            assertEquals(ProfileView.AVATAR_SIZE, picture.getIcon().getIconHeight());
+            assertEquals("", picture.getText());
+        });
+    }
+
+    @Test
+    void avatarFileThatCanNoLongerBeReadShowsAMessageInstead() throws Exception {
+        new JsonProfileDataAccessObject(file).saveProfile(new UserProfile(
+                ALICE.getId(), "Alice", "", directory.resolve("deleted.png").toString(), null));
+        session.setCurrentUser(ALICE);
+        JPanel panel = create(SAME_THREAD);
+
+        JLabel picture = find(panel, "avatarLabel");
+        JLabel caption = find(panel, "avatarCaption");
+        awaitOnEdt(() -> caption.getText().equals("Picture can't be shown"));
+        // the red initial stands in for the missing photo
+        SwingUtilities.invokeAndWait(() -> assertEquals("No profile picture", description(picture)));
+    }
+
+    @Test
     void invalidEditShowsErrorAndSavesNothing() throws Exception {
         session.setCurrentUser(ALICE);
         JPanel panel = create(SAME_THREAD);
 
         SwingUtilities.invokeAndWait(() -> {
-            button(panel, "Edit Profile").doClick();
+            button(panel, "Edit profile").doClick();
             this.<JTextField>find(panel, "nameField").setText("   ");
             button(panel, "Save").doClick();
         });
@@ -166,12 +208,12 @@ class ProfileModuleTest {
         List<Runnable> queued = new ArrayList<>();
         JPanel panel = create(queued::add);
 
-        SwingUtilities.invokeAndWait(() -> assertFalse(button(panel, "Edit Profile").isEnabled()));
+        SwingUtilities.invokeAndWait(() -> assertFalse(button(panel, "Edit profile").isEnabled()));
 
         queued.remove(0).run(); // the load finishes
         SwingUtilities.invokeAndWait(() -> { });
 
-        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel, "Edit Profile").isEnabled()));
+        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel, "Edit profile").isEnabled()));
     }
 
     @Test
@@ -183,7 +225,7 @@ class ProfileModuleTest {
         SwingUtilities.invokeAndWait(() -> { });
 
         SwingUtilities.invokeAndWait(() -> {
-            button(panel, "Edit Profile").doClick();
+            button(panel, "Edit profile").doClick();
             this.<JTextField>find(panel, "nameField").setText("Kieran");
             button(panel, "Save").doClick();
             assertFalse(button(panel, "Cancel").isEnabled());
@@ -203,6 +245,22 @@ class ProfileModuleTest {
         return panel[0];
     }
 
+    // the picture loads on a background worker, so poll (on the EDT) until it lands, up to 5 seconds
+    private static void awaitOnEdt(BooleanSupplier condition) throws Exception {
+        long deadline = System.currentTimeMillis() + 5000;
+        boolean[] met = new boolean[1];
+        while (true) {
+            SwingUtilities.invokeAndWait(() -> met[0] = condition.getAsBoolean());
+            if (met[0]) {
+                return;
+            }
+            if (System.currentTimeMillis() > deadline) {
+                throw new AssertionError("condition not met within 5 seconds");
+            }
+            Thread.sleep(20);
+        }
+    }
+
     // a session change queues reload() on the EDT, and reload's result queues one render: flush both
     private static void flush() throws Exception {
         SwingUtilities.invokeAndWait(() -> { });
@@ -216,6 +274,10 @@ class ProfileModuleTest {
 
     private UserProfile load(User user) throws Exception {
         return new JsonProfileDataAccessObject(file).findProfile(user.getId()).orElseThrow();
+    }
+
+    private static String description(JLabel label) {
+        return label.getAccessibleContext().getAccessibleDescription();
     }
 
     // true if the component and every parent up to the panel are visible, i.e. its card is the one shown

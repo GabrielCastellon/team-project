@@ -1,5 +1,6 @@
 package app;
 
+import data_access.FileAvatarImageLoader;
 import data_access.FileSystemAvatarFileChecker;
 import data_access.JsonProfileDataAccessObject;
 import entity.SessionManager;
@@ -50,7 +51,8 @@ public final class ProfileModule {
         ProfileView view = new ProfileView(
                 new ViewProfileController(viewProfile, currentUserId, executor),
                 new EditProfileController(editProfile, currentUserId, executor),
-                viewModel);
+                viewModel,
+                new FileAvatarImageLoader()::load);
 
         // Sign-in, account switch or logout: show the new user's profile (or the sign-in message).
         // The session may notify from any thread, and the view must only be touched on the EDT.
