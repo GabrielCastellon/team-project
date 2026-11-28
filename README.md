@@ -8,7 +8,7 @@ Photofy is a Java 17 desktop app for discovering and saving images.
 
 ## Current status
 
-The app opens with five tabs. Accounts, Discovery and Pins share the signed-in account. Boards supports creating a board for that account. Profile saves edits under a shared demo ID pending account integration.
+The app opens with five tabs. Accounts, Discovery and Pins share the signed-in account. Boards lets the signed-in account create a board and reload its saved board list with pin counts. Profile saves edits under a shared demo ID pending account integration.
 
 ## User stories and ownership
 
@@ -28,7 +28,7 @@ The app opens with five tabs. Accounts, Discovery and Pins share the signed-in a
 | Matthew | Register, sign in and sign out | Connect Profile to the session with Kieran |
 | Kevin | Search and browse Unsplash. Recommend from My Pins ranks the current page using the signed-in account’s saved photos. | Both Discovery stories are implemented |
 | Alex | Save photos, prevent duplicate saves and display the account’s pins with thumbnails | Assign pins to boards with Gabriel. Editing pin details and filtering are planned. |
-| Gabriel | Create a named board for the signed-in account and save it to disk | Integrate the board list on restart, open boards to see their pins, and implement rename and delete for the full story |
+| Gabriel | Create a named board and view the account’s saved boards after restarting. Sort boards by name or pin count. | Open boards to see their pins. Rename and delete are part of the full story. |
 | Kieran | View and edit the display name, biography and avatar | Load and save the active account’s profile. Appearance settings are a stretch goal. |
 
 See the [use-case descriptions](docs/USE_CASES.md) and [Discovery entity diagrams](docs/DISCOVERY_DESIGN.md).
@@ -60,7 +60,7 @@ Tests run headlessly; the interactive app requires a graphical desktop. The firs
 
 Set `UNSPLASH_ACCESS_KEY` to your own Unsplash Access Key before starting, then open the Discovery tab. With no key, the shell still starts and that tab shows a configuration error; other tabs remain usable. Restart after setting environment variables. Never commit keys.
 
-Sign in, search for images, and click **Save** on a result. Click **Recommend from My Pins** to see the other results ranked by similarity to the photos in your Pins tab. Signing out or switching accounts clears those recommendations.
+Sign in, search for images, and click **Save** on a result. Click **Recommend from My Pins** to see the other results ranked by similarity to the photos in your Pins tab. Signing out or switching accounts clears those recommendations and any Save feedback. You can start a new search while a previous account’s ranking is still finishing.
 
 The separate A/B demo lets you like samples, mix preferences, rank for a group, and analyze a sample collection. It stores samples under `data/discovery-preferences/`. Set `DISCOVERY_DATA_DIR` to change that location. The default model compares RGB histograms. Optional CLIP support requires a separately exported model and `CLIP_MODEL_PATH`.
 

@@ -3,6 +3,9 @@ package data_access;
 import entity.BoardFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import entity.Board;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Path;
 
@@ -24,5 +27,24 @@ class JsonBoardDataAccessObjectTest {
         assertTrue(reopened.existsByName("u17", "Gym"));
         assertTrue(reopened.existsByName("u17", "Recipes"));
         assertFalse(reopened.existsByName("u42", "Gym"));
+    }
+    @Test
+    void findsOnlyTheUsersBoardsAfterReopening(@TempDir Path directory) {
+        Path file = directory.resolve("boards.json");
+        JsonBoardDataAccessObject dao = new JsonBoardDataAccessObject(file);
+        BoardFactory factory = new BoardFactory();
+
+        dao.save(factory.create("u17", "Gym"));
+        dao.save(factory.create("u18", "Travel"));
+        dao.save(factory.create("u17", "Recipes"));
+
+        JsonBoardDataAccessObject reopened = new JsonBoardDataAccessObject(file);
+        List<String> names = reopened.findByUserId("u17").stream()
+                .map(Board::getName)
+                .sorted()
+                .toList();
+
+        assertEquals(List.of("Gym", "Recipes"), names);
+        assertTrue(reopened.findByUserId("u42").isEmpty());
     }
 }

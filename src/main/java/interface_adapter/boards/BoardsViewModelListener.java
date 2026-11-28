@@ -1,4 +1,4 @@
-package interface_adapter.create_board;
+package interface_adapter.boards;
 
 public interface BoardsViewModelListener {
     void stateChanged();

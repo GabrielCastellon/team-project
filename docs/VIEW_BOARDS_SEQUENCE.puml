@@ -1,0 +1,27 @@
+@startuml
+title Use Case 5.2 View Boards — Main Success Scenario
+
+actor User
+participant BoardsView as View
+participant "ViewBoardsController" as Controller
+participant "ViewBoardsInteractor" as Interactor
+participant "JsonBoardDataAccessObject" as DAO
+participant "ViewBoardsPresenter" as Presenter
+participant BoardsViewModel as VM
+
+User -> View : Open Boards tab
+View -> Controller : execute(currentUserId)
+Controller -> Interactor : execute(inputData)
+
+Interactor -> DAO : findByUserId(userId)
+DAO --> Interactor : user's boards
+
+Interactor -> Presenter : prepareSuccessView(outputData)
+Presenter -> VM : setState(loadedState)
+Presenter -> VM : notifyStateChanged()
+VM -> View : stateChanged()
+View -> VM : getState()
+VM --> View : loadedState
+View --> User : Display board names
+
+@enduml

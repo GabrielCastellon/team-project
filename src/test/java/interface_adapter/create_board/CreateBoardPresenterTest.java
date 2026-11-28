@@ -1,5 +1,6 @@
 package interface_adapter.create_board;
 
+import interface_adapter.boards.BoardsViewModel;
 import org.junit.jupiter.api.Test;
 import use_case.create_board.CreateBoardOutputData;
 
