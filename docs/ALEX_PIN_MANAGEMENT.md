@@ -120,13 +120,12 @@ metadata, and doesn't require the user to provide annotations
 
 ## Noun–verb analysis
 
-| Nouns — candidate concepts | Verbs — candidate responsibilities |
+| Candidate concept | Role in Save Pin |
 |---|---|
-| User | Saves |
-| Photograph | Retains |
-| Pin | Retrieves |
-| Personal collection | Personalizes |
-| Source information | — |
+| User | Requests to save a discovered photo and later opens Pins to view it. |
+| Photo | Provides the source photo ID, caption, and photographer credit. |
+| Pin | Associates the saved photo with the user who saved it. |
+| Personal collection | Groups the user’s saved pins for later viewing. |
 
 
 ## Clean Architecture Design 
