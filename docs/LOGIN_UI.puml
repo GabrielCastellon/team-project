@@ -1,0 +1,177 @@
+
+@startuml
+title Photofy - Login and Authentication Class Diagram
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "Presentation" {
+    class AuthPanel {
+        - loginController: LoginController
+        - loginViewModel: LoginViewModel
+        - sessionManager: SessionManager
+        - loginUsername: JTextField
+        - loginPassword: JPasswordField
+        + AuthPanel(...)
+        - handleLogin(): void
+        - showWelcome(user: User): void
+        - showPage(page: String): void
+    }
+}
+
+package "Interface Adapters" {
+    class LoginController {
+        - interactor: LoginInputBoundary
+        + LoginController(interactor: LoginInputBoundary)
+        + execute(username: String, password: String): void
+    }
+
+    class LoginPresenter {
+        - viewModel: LoginViewModel
+        - sessionManager: SessionManager
+        + LoginPresenter(viewModel: LoginViewModel, sessionManager: SessionManager)
+        + present(outputData: LoginOutputData): void
+    }
+
+    class LoginViewModel {
+        - state: LoginState
+        + getState(): LoginState
+    }
+
+    class LoginState {
+        - success: boolean
+        - user: User
+        - errorMessage: String
+        - destinationView: String
+        + isSuccess(): boolean
+        + setSuccess(success: boolean): void
+        + getUser(): User
+        + setUser(user: User): void
+        + getErrorMessage(): String
+        + setErrorMessage(message: String): void
+        + getDestinationView(): String
+        + setDestinationView(destination: String): void
+    }
+}
+
+package "Use Cases" {
+    interface LoginInputBoundary {
+        + execute(inputData: LoginInputData): void
+    }
+
+    interface LoginOutputBoundary {
+        + present(outputData: LoginOutputData): void
+    }
+
+    interface LoginUserDataAccessInterface {
+        + existsByName(username: String): boolean
+        + get(username: String): User
+    }
+
+    class LoginInteractor {
+        - userDataAccess: LoginUserDataAccessInterface
+        - presenter: LoginOutputBoundary
+        - passwordHasher: PasswordHasher
+        + LoginInteractor(...)
+        + execute(inputData: LoginInputData): void
+    }
+
+    class LoginInputData {
+        - username: String
+        - password: String
+        + LoginInputData(username: String, password: String)
+        + getUsername(): String
+        + getPassword(): String
+    }
+
+    class LoginOutputData {
+        - success: boolean
+        - user: User
+        - errorMessage: String
+        + LoginOutputData(success: boolean, user: User, errorMessage: String)
+        + isSuccess(): boolean
+        + getUser(): User
+        + getErrorMessage(): String
+    }
+}
+
+package "Data Access" {
+    class JsonUserDataAccessObject {
+        - jsonStorage: JsonStorage
+        - usersFile: Path
+        + existsByName(username: String): boolean
+        + get(username: String): User
+        + save(user: User): void
+    }
+
+    class JsonStorage {
+        + load(path: Path): Object
+        + save(path: Path, value: Object): void
+    }
+}
+
+package "Entities" {
+    class User {
+        - id: String
+        - username: String
+        - passwordHash: String
+        + User(id: String, username: String, passwordHash: String)
+        + getId(): String
+        + getUsername(): String
+        + getPasswordHash(): String
+    }
+
+    interface SessionManager {
+        + getCurrentUser(): User
+        + setCurrentUser(user: User): void
+        + isLoggedIn(): boolean
+        + logout(): void
+    }
+
+    class InMemorySessionManager {
+        - currentUser: User
+        + getCurrentUser(): User
+        + setCurrentUser(user: User): void
+        + isLoggedIn(): boolean
+        + logout(): void
+    }
+}
+
+package "Security" {
+    class PasswordHasher {
+        - SALT_BYTES: int
+        - random: SecureRandom
+        + PasswordHasher()
+        + hash(password: String): String
+        + matches(password: String, encoded: String): boolean
+        - digest(salt: byte[], password: String): byte[]
+    }
+}
+
+' Interface implementation
+LoginController --> LoginInputBoundary
+LoginInteractor ..|> LoginInputBoundary
+LoginInteractor ..> LoginOutputBoundary
+LoginPresenter ..|> LoginOutputBoundary
+JsonUserDataAccessObject ..|> LoginUserDataAccessInterface
+InMemorySessionManager ..|> SessionManager
+
+' Class relationships
+AuthPanel --> LoginController
+AuthPanel --> LoginViewModel
+AuthPanel --> SessionManager
+
+LoginViewModel *-- LoginState
+LoginController ..> LoginInputData
+LoginInteractor ..> LoginInputData
+LoginInteractor ..> LoginOutputData
+LoginInteractor --> LoginUserDataAccessInterface
+LoginInteractor --> PasswordHasher
+LoginPresenter --> LoginViewModel
+LoginPresenter --> SessionManager
+LoginState --> User
+LoginOutputData --> User
+SessionManager ..> User
+InMemorySessionManager --> User
+JsonUserDataAccessObject --> JsonStorage
+
+@enduml

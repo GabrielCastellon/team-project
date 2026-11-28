@@ -1,0 +1,86 @@
+
+@startuml
+title Photofy - Login Sequence Diagram
+
+actor User
+participant "AuthPanel" as View
+participant "LoginController" as Controller
+participant "LoginInteractor" as Interactor
+participant "JsonUserDataAccessObject" as DAO
+participant "PasswordHasher" as Hasher
+participant "LoginPresenter" as Presenter
+participant "LoginViewModel" as ViewModel
+participant "SessionManager" as Session
+
+User -> View: Enter username and password
+User -> View: Click Log In
+
+activate View
+
+View -> View: handleLogin()
+
+alt Username or password is empty
+    View -> User: Display missing information error
+
+else Credentials provided
+
+    View -> Controller: execute(username, password)
+    activate Controller
+
+    Controller -> Interactor: execute(LoginInputData)
+    activate Interactor
+
+    Interactor -> DAO: existsByName(username)
+    activate DAO
+    DAO --> Interactor: username exists?
+    deactivate DAO
+
+    alt Username does not exist
+        Interactor -> Presenter: present(failure output)
+
+    else Username exists
+        Interactor -> DAO: get(username)
+        activate DAO
+        DAO --> Interactor: User
+        deactivate DAO
+
+        Interactor -> Hasher: matches(password, passwordHash)
+        Hasher --> Interactor: password valid?
+
+        alt Password is incorrect
+            Interactor -> Presenter: present(failure output)
+
+        else Password is correct
+            Interactor -> Presenter: present(success output)
+            activate Presenter
+
+            Presenter -> ViewModel: Update success and User
+            Presenter -> Session: setCurrentUser(User)
+            Presenter -> ViewModel: setDestinationView("search")
+
+            deactivate Presenter
+        end
+    end
+
+    deactivate Interactor
+    deactivate Controller
+
+    View -> ViewModel: getState()
+
+    alt Login successful
+        View -> User: Display welcome screen
+
+        opt User logs out later
+            User -> View: Click Log Out
+            View -> Session: logout()
+            View -> User: Display login screen
+        end
+
+    else Login unsuccessful
+        View -> User: Display login error
+    end
+end
+
+deactivate View
+
+@enduml
