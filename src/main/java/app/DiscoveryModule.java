@@ -96,11 +96,15 @@ public final class DiscoveryModule {
                     service, images::load, view, new SwingTaskRunner<>());
             view.setController(controller);
             view.addSavedPinRecommendations(() -> controller.recommendFromPins(currentOwner, pins));
+            Runnable onSessionChange = () -> {
+                view.clearSavedFeedback();
+                controller.sessionChanged();
+            };
             sessionManager.addSessionListener(() -> {
                 if (SwingUtilities.isEventDispatchThread()) {
-                    controller.sessionChanged();
+                    onSessionChange.run();
                 } else {
-                    SwingUtilities.invokeLater(controller::sessionChanged);
+                    SwingUtilities.invokeLater(onSessionChange);
                 }
             });
 

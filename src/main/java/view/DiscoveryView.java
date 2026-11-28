@@ -147,6 +147,16 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
         ranking.add(button("Recommend from My Pins", action));
     }
 
+    public void clearSavedFeedback() {
+        for (JLabel label : saveLabels.values()) {
+            label.setText("");
+        }
+        SavePinState lastSave = savePinViewModel.getState();
+        if (lastSave != null && lastSave.getMessage().equals(status.getText())) {
+            status("");
+        }
+    }
+
     //stores an action for later
     public void setSaveAction(SaveAction saveAction){
         this.saveAction = saveAction;

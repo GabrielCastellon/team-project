@@ -29,6 +29,7 @@ public final class DiscoveryController {
     private List<Photo> candidates = List.of();
 
     private boolean working;
+    private boolean pinRankingInProgress;
     private boolean showingPinRecommendations;
     private long sessionVersion;
 
@@ -62,6 +63,12 @@ public final class DiscoveryController {
 
     public void sessionChanged() {
         sessionVersion++;
+        if (pinRankingInProgress) {
+            pinRankingInProgress = false;
+            working = false;
+            presenter.status(ACCOUNT_CHANGED);
+            presenter.busy(false);
+        }
         if (showingPinRecommendations) {
             showingPinRecommendations = false;
             presenter.show(List.of(), ACCOUNT_CHANGED);
@@ -74,14 +81,20 @@ public final class DiscoveryController {
             presenter.status("Sign in to recommend from your saved pins.");
             return;
         }
+        if (working) {
+            return;
+        }
+        List<Photo> searchPage = candidates;
         run(
                 () -> {
-                    List<Photo> results = requireCandidates();
+                    if (searchPage.isEmpty()) {
+                        throw new IllegalArgumentException("Search for images before requesting recommendations");
+                    }
                     List<Photo> photos = savedPins.findByOwnerId(ownerId).stream().map(Pin::getPhoto).toList();
                     if (photos.isEmpty()) {
                         throw new IllegalArgumentException("Save a pin to get recommendations from My Pins");
                     }
-                    return presenter.scored(service.recommendFromPhotos(results, photos));
+                    return presenter.scored(service.recommendFromPhotos(searchPage, photos));
                 },
                 "Recommended from your pins. Already saved images are excluded.",
                 () -> Objects.equals(ownerId, currentOwner.get()));
@@ -147,11 +160,15 @@ public final class DiscoveryController {
         boolean fromSavedPins = ownerIsCurrent != null;
         long requestSession = sessionVersion;
         working = true;
+        pinRankingInProgress = fromSavedPins;
         presenter.busy(true);
         presenter.status("Working…");
         tasks.run(task, (result, failure) -> {
+            if (fromSavedPins && requestSession != sessionVersion) {
+                return;
+            }
             try {
-                if (fromSavedPins && (requestSession != sessionVersion || !ownerIsCurrent.getAsBoolean())) {
+                if (fromSavedPins && !ownerIsCurrent.getAsBoolean()) {
                     presenter.status(ACCOUNT_CHANGED);
                 } else if (failure instanceof InterruptedException) {
                     presenter.status("Cancelled");
@@ -167,6 +184,7 @@ public final class DiscoveryController {
                 }
             } finally {
                 working = false;
+                pinRankingInProgress = false;
                 presenter.busy(false);
             }
         });

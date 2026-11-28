@@ -27,9 +27,12 @@ public final class ImageLoader {
                 }
             };
 
-    public synchronized BufferedImage load(String url) throws IOException {
-        if (cache.containsKey(url)) {
-            return cache.get(url);
+    public BufferedImage load(String url) throws IOException {
+        synchronized (cache) {
+            BufferedImage cached = cache.get(url);
+            if (cached != null) {
+                return cached;
+            }
         }
         URI uri = URI.create(url);
         if (!"https".equals(uri.getScheme()) || !"images.unsplash.com".equals(uri.getHost())) {
@@ -50,8 +53,10 @@ public final class ImageLoader {
             if (image == null) {
                 throw new IOException("Unsupported image format");
             }
-            cache.put(url, image);
-            return image;
+            synchronized (cache) {
+                BufferedImage cached = cache.putIfAbsent(url, image);
+                return cached == null ? image : cached;
+            }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IOException("Image loading cancelled", ex);
