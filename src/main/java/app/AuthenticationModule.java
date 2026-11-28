@@ -1,7 +1,6 @@
 
 package app;
 
-import app.presentation.AuthPanel;
 import data_access.JsonStorage;
 import data_access.JsonUserDataAccessObject;
 import entity.SessionManager;
@@ -14,6 +13,7 @@ import interface_adapter.signup.SignupViewModel;
 import use_case.login.LoginInteractor;
 import use_case.security.PasswordHasher;
 import use_case.signup.SignupInteractor;
+import view.AuthPanel;
 
 import java.nio.file.Paths;
 

@@ -13,7 +13,7 @@ flowchart TD
     UC --> E[entity: domain objects]
 ```
 
-An arrow means a source-code dependency, not runtime call direction. The shell wires Kevin’s discovery module through its lazy feature factory; other features remain placeholders. ArchUnit allows empty inner packages intentionally at this stage and enforces their dependency rules once classes exist. This is not evidence that unimplemented features follow Clean Architecture.
+The arrows show source dependencies between the main layers. `ApplicationFactory` and the feature modules wire Accounts, Discovery, Pins, Boards, and Profile. ArchUnit checks the compiled production packages, requires the checked layers to contain classes, keeps Swing panels under `view`, and prevents interface adapters from depending on concrete `*Interactor` classes in `use_case`.
 
 - `entity`: domain objects and invariants; JDK/domain types only. No Swing, HTTP, Gson, ONNX or repositories.
 - `use_case/<feature>`: input boundary, request/response data, interactor, output boundary and small gateway interfaces. Dependencies only on this layer, entities and the JDK. Keep framework-specific details outside.
@@ -23,6 +23,8 @@ An arrow means a source-code dependency, not runtime call direction. The shell w
 - `app`: choose concrete dependencies and wire them together. Only this layer should know the entire object graph.
 
 A use case may return response data through its input boundary in a synchronous design, but the UI adapter must still keep presentation out of the interactor. Prefer the course output-boundary/presenter structure for new features. Discovery uses synchronous response data through DiscoveryInputBoundary and a separate DiscoveryPresenter in the UI adapter. It does not claim a course-style output-boundary callback from the interactor; that is an explicit tradeoff preserved to keep existing business behavior stable.
+
+Edit Board sends a missing-board outcome through `EditBoardOutputBoundary.presentBoardNotFound()`. The presenter clears the stale editor and board detail and supplies the message. The [class diagram](EDIT_BOARDS_UML.puml) shows the boundary, and the [rubric evidence](RUBRIC_EVIDENCE.md) explains how the CAVE findings were checked.
 
 ## One feature at a time
 

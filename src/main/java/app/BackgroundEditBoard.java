@@ -83,6 +83,10 @@ final class BackgroundEditBoard implements EditBoardInputBoundary {
                 update = () -> presenter.presentSaved(data);
             }
 
+            public void presentBoardNotFound() {
+                update = presenter::presentBoardNotFound;
+            }
+
             public void presentError(String message) {
                 update = () -> presenter.presentError(message);
             }

@@ -9,5 +9,6 @@
     <module name="OuterTypeFilename"/>
     <module name="EmptyStatement"/>
     <module name="EqualsHashCode"/>
+    <module name="UnusedImports"/>
   </module>
 </module>

@@ -12,7 +12,6 @@ import use_case.open_boards.PinSummary;
 import use_case.view_pins.ViewPinsDataAccessInterface;
 
 public final class EditBoardInteractor implements EditBoardInputBoundary {
-    public static final String BOARD_NOT_FOUND = "Board not found.";
     private final EditBoardDataAccessInterface boardDAO;
     private final ViewPinsDataAccessInterface pinDAO;
     private final EditBoardOutputBoundary outputBoundary;
@@ -27,14 +26,14 @@ public final class EditBoardInteractor implements EditBoardInputBoundary {
     @Override
     public void load(String userId, String boardId) {
         if (userId == null || userId.isBlank()) {
-            outputBoundary.presentError(BOARD_NOT_FOUND);
+            outputBoundary.presentBoardNotFound();
             return;
         }
         EditBoardEditorData editorData;
         try {
             var result = boardDAO.findByOwnerAndId(userId, boardId);
             if (result.isEmpty()) {
-                outputBoundary.presentError(BOARD_NOT_FOUND);
+                outputBoundary.presentBoardNotFound();
                 return;
             }
             Board board = result.get();
@@ -51,7 +50,7 @@ public final class EditBoardInteractor implements EditBoardInputBoundary {
     @Override
     public void save(EditBoardInputData data) {
         if (data.userId() == null || data.userId().isBlank()) {
-            outputBoundary.presentError(BOARD_NOT_FOUND);
+            outputBoundary.presentBoardNotFound();
             return;
         }
         if (data.name() == null || data.name().isBlank()) {
@@ -70,7 +69,7 @@ public final class EditBoardInteractor implements EditBoardInputBoundary {
             saved = new OpenBoardOutputData(data.boardId(), name, selected.stream().map(pins::get).toList());
             var result = boardDAO.updateOwnedBoard(data.userId(), data.boardId(), name, selected);
             if (result == EditBoardDataAccessInterface.UpdateResult.NOT_FOUND) {
-                outputBoundary.presentError(BOARD_NOT_FOUND);
+                outputBoundary.presentBoardNotFound();
                 return;
             }
             if (result == EditBoardDataAccessInterface.UpdateResult.DUPLICATE_NAME) {

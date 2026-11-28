@@ -15,6 +15,7 @@ class "EditBoardController" as Controller {
 class "EditBoardPresenter" as Presenter {
     - viewModel: BoardsViewModel
     + presentEditor(data: EditBoardEditorData): void
+    + presentBoardNotFound(): void
     + presentSaved(data: OpenBoardOutputData): void
     + presentError(message: String): void
 }
@@ -47,6 +48,7 @@ interface "EditBoardInputBoundary" as InPort {
 }
 interface "EditBoardOutputBoundary" as OutPort {
     + presentEditor(data: EditBoardEditorData): void
+    + presentBoardNotFound(): void
     + presentSaved(data: OpenBoardOutputData): void
     + presentError(message: String): void
 }

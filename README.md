@@ -1,14 +1,14 @@
-# Pinterest-Inspired Image Discovery — Team Project
+# Photofy
 
 ## Team and domain
 
 Kevin Yamada, Gabriel Castellon, Alex Mack-Mumford, Charles Matthew Escober, and Kieran Murphy. Domain: image discovery and personal organization. See [team contract](TeamContract.md).
 
-The planned application lets people discover images, save pins to boards, and get recommendations from their visual preferences. Accounts associate collections with their owners, and profile settings personalize the experience.
+Photofy is a Java 17 desktop app for finding visual inspiration, saving photos, and organizing them into personal boards. Signed-in users can find similar images and edit their profiles.
 
 ## Current status
 
-The application uses the **shared foundation**: a runnable Java 17 Swing window with Accounts and Pins placeholders plus Kevin’s Discovery panel, the Boards panel and Kieran’s Profile panel. Kevin’s discovery implementation is proposed here for teammate review, and the Boards panel supports Create Board, with Accounts integration pending; the other owners’ features remain pending. It starts without API keys or local data. Kevin’s previous discovery module is preserved in Git history and the migration backup; this feature branch restores it on the foundation. Discovery uses Unsplash and JSON preference snapshots; placeholders do not implement API or persistence behavior.
+Accounts, Discovery, Pins, Boards, and Profile are integrated in the Swing app. It starts without an API key. Unsplash search requires one.
 
 ## User stories and ownership
 
@@ -17,34 +17,31 @@ The application uses the **shared foundation**: a runnable Java 17 Swing window 
 | 1 | As a user, I want to create an account and log in so that my boards and preferences are associated with my profile. | Matthew |
 | 2 | As a user, I want to search and browse images so that I can discover inspiration for my projects. | Kevin |
 | 3 | As a signed-in user, I want to find new images similar to the pins I've saved so I can discover more images I like. | Kevin |
-| 4 | As a user, I want to create, view, and edit individual pins, including their titles, descriptions, images, and tags, so that I can manage saved content. | Alex |
+| 4 | As a signed-in user, I want to save photos and see their thumbnails and credits in my personal collection. | Alex |
 | 5 | As a user, I want to create boards, view my board list, open a board to see its pins, edit its name or pins, and delete boards so that I can organize my saved images by topic. | Gabriel |
-| 6 | As a user, I want to customize my profile and appearance settings so that I can personalize my experience. | Kieran & Matthew |
+| 6 | As a signed-in user, I want to set my display name, biography, and profile photo. | Kieran |
 
 ## MVP use cases
 
-| Lead | MVP use case | Observable goal | Foundation status |
-|---|---|---|---|
-| Matthew | Register / log in | Access collections associated with the signed-in account | Placeholder |
-| Kevin | Search / browse images | Enter terms, view credited results, browse pages | Implemented on this feature branch |
-| Kevin | Recommend from My Pins | Rank the current search results by similarity to my saved pins and exclude photos I've already saved | Implemented on this feature branch |
-| Alex | Manage pins | Create, view and edit saved image details | Placeholder |
-| Gabriel | Create Board (5.1) | Create a named board and see it appear in my board list | Implemented on this branch; signed-in account integration pending |
-| Gabriel | View Boards (5.2) | See all boards belonging to my account | Implemented on this branch, pending Accounts integration  |
-| Gabriel | Open Board (5.3) | Select a board and see its name and saved pins | Implemented on this branch  |
-| Kieran, coordinating with Matthew | Edit profile | View and edit display name, biography and avatar, saved to local JSON | Implemented (Change Appearance stretch pending) |
-
-Kieran should own a distinct complete profile use case; coordinate the overlap with Matthew's account story so each member can demonstrate their own contribution. Detailed proposed flows and unresolved integration decisions are in [use cases](docs/USE_CASES.md). These are planning contracts for owners to confirm, not implemented teammate features.
+| Lead | MVP use case | Observable goal |
+|---|---|---|
+| Matthew | Register / log in | Access the signed-in account's collections |
+| Kevin | Search / browse images | Enter terms, view credited results, and browse pages |
+| Kevin | Recommend from My Pins | Rank the current results by similarity to saved pins and exclude previously saved photos |
+| Alex | Save / view pins | Save a Discovery result and see it in Pins after restarting |
+| Gabriel | Create / view / open boards | Create a named board, find it in the list, and open its gallery |
+| Gabriel | Edit / delete boards | Rename a board, update its pins, or delete it |
+| Kieran | View / edit profile | Save a display name, biography, or profile photo and see it after signing back in |
 
 ## Entities
 
-Planned shared concepts are User (stable identity), Profile (display/appearance), and Pin (image metadata). Each Board stores its ID, its owner's ID, its name, and its pin IDs. BoardFactory creates new boards with an empty pin list. Their owners must agree on fields, invariants and relationships before adding shared Java classes. The foundation deliberately contains no invented implementations. Kevin's discovery PR supplies the existing Photo, FeatureVector and ScoredPhoto value types and documents their [use-case class diagrams, search sequences, skeleton startup and entities](docs/DISCOVERY_DESIGN.md).
+`User` provides a stable account ID. `Pin` links that ID to a photo. `Board` holds an owner ID and an ordered list of pin IDs. `UserProfile` stores the account's display name, bio, and avatar. The [Discovery diagrams](docs/DISCOVERY_DESIGN.md) cover the search and ranking types.
 
 ## API and persistence
 
-Discovery uses Unsplash for keyword search, result metadata, attribution and selection tracking. The live desktop check loaded 20 photos and ranked the 19 remaining after one was saved. [Unsplash documentation](https://unsplash.com/documentation)
+Discovery uses Unsplash for keyword search, result metadata, and attribution. Liking an A/B preference sample calls the Unsplash tracking endpoint. Recommend from My Pins ranks the current results locally. [Unsplash documentation](https://unsplash.com/documentation)
 
-Planned local JSON storage: accounts (Matthew), profiles (Kieran), and pins (Alex). Create Board saves boards to local JSON storage. An automated test reopens the file and finds a saved board by owner ID and board name. Filenames and cross-feature contracts remain to be agreed. Kevin's separate discovery module persists preference samples; they are not authenticated boards or accounts. Demonstrate saving, restarting and loading for the final presentation.
+The app uses local JSON files under `data/` for accounts, profiles, pins, and boards. The A/B preference sampler has its own storage. The [rubric evidence](docs/RUBRIC_EVIDENCE.md) includes a save-and-reload demo plan.
 
 ## How to run
 
@@ -61,7 +58,7 @@ Tests run headlessly; the interactive app requires a graphical desktop. The firs
 
 [Architecture and diagrams](docs/ARCHITECTURE.md) explain the Dependency Rule, SOLID, the Virtual Proxy pattern, and the per-feature integration checklist. [Contributing](CONTRIBUTING.md) describes issues, feature branches, reviews and Checkstyle. Preserve everyone's opportunities to implement and review their own use cases.
 
-[Rubric evidence plan](docs/RUBRIC_EVIDENCE.md) maps the supplied November 15 rubric to evidence the team still needs. A skeleton is preparation, not proof that the whole MVP is complete.
+[Final rubric evidence](docs/RUBRIC_EVIDENCE.md) records the CAVE findings, ArchUnit and Checkstyle checks, and the presentation walkthrough.
 
 ## Kevin’s Discovery panel
 
@@ -85,4 +82,4 @@ Original team main is preserved on the **kevin_working** branch. [Issue #9](http
 
 ## Integration verification
 
-[Verification and rubric evidence](docs/VERIFICATION.md) records the 32-test suite, real-module shell tests, dependency/style checks and remaining manual demo checks. The active feature is built on the skeleton through app.Main and ApplicationFactory; kevin_working is only the historical backup and is not used at runtime. [The UML guide](docs/DISCOVERY_DESIGN.md) separates per-use-case class diagrams from interaction-specific sequences.
+The [Discovery verification notes](docs/VERIFICATION.md) record the earlier audit. See the [final rubric evidence](docs/RUBRIC_EVIDENCE.md) for the current review.

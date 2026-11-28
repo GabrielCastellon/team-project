@@ -29,9 +29,11 @@ class EditBoardInteractorTest {
     private static final class Output implements EditBoardOutputBoundary {
         private EditBoardEditorData editor;
         private OpenBoardOutputData saved;
+        private boolean boardNotFound;
         private String error;
         public void presentEditor(EditBoardEditorData data) { editor = data; }
         public void presentSaved(OpenBoardOutputData data) { saved = data; }
+        public void presentBoardNotFound() { boardNotFound = true; }
         public void presentError(String message) { error = message; }
     }
     private final Storage storage = new Storage();
@@ -64,6 +66,21 @@ class EditBoardInteractorTest {
         assertEquals(0, storage.writes);
         interactor.save(new EditBoardInputData("u1", "b1", "  ", List.of()));
         assertEquals("Enter a board name.", output.error);
+        assertEquals(0, storage.writes);
+    }
+
+    @Test
+    void reportsUnavailableBoardThroughItsOwnOutput() {
+        interactor.load("u2", "b1");
+        assertTrue(output.boardNotFound);
+        assertNull(output.editor);
+        assertNull(output.error);
+        output.boardNotFound = false;
+
+        interactor.save(new EditBoardInputData("u1", "missing", "Updated", List.of()));
+        assertTrue(output.boardNotFound);
+        assertNull(output.saved);
+        assertNull(output.error);
         assertEquals(0, storage.writes);
     }
 }
