@@ -59,6 +59,7 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
     private final JButton editButton = new JButton("Edit Profile");
     private final JButton saveButton = new JButton("Save");
     private final JButton cancelButton = new JButton("Cancel");
+    private final JButton browseButton = new JButton("Browse…");
 
     public ProfileView(ViewProfileController viewProfileController,
                        EditProfileController editProfileController,
@@ -102,6 +103,10 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         editButton.setEnabled(true);
         saveButton.setEnabled(true);
         cancelButton.setEnabled(true);
+        nameField.setEnabled(true);
+        bioField.setEnabled(true);
+        avatarField.setEnabled(true);
+        browseButton.setEnabled(true);
         // only a successful save leaves edit mode; on failure the form keeps the user's edits
         if (state.isSaved()) {
             cards.show(cardPanel, DISPLAY_CARD);
@@ -136,7 +141,6 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         bioField.setWrapStyleWord(true);
         avatarField.setName("avatarField");
 
-        JButton browseButton = new JButton("Browse…");
         browseButton.addActionListener(event -> chooseAvatar());
         JPanel avatarRow = new JPanel(new BorderLayout(4, 0));
         avatarRow.add(avatarField, BorderLayout.CENTER);
@@ -186,6 +190,10 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         // disabled until the result arrives: no double submit, and no Cancel that the save would then overrule
         saveButton.setEnabled(false);
         cancelButton.setEnabled(false);
+        nameField.setEnabled(false);
+        bioField.setEnabled(false);
+        avatarField.setEnabled(false);
+        browseButton.setEnabled(false);
         statusLabel.setText("Saving…");
         editProfileController.execute(nameField.getText(), bioField.getText(), avatarField.getText().trim());
     }
