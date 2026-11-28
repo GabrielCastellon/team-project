@@ -1,0 +1,54 @@
+@startuml
+title Use Case 5.4 Edit Boards — Main Success Scenario
+
+actor User
+participant BoardsView as View
+participant EditBoardController as Controller
+participant EditBoardInteractor as Interactor
+participant JsonBoardDataAccessObject as BoardDAO
+participant JsonPinDataAccessObject as PinDAO
+participant EditBoardPresenter as Presenter
+participant BoardsViewModel as VM
+
+User -> View : Select Edit board
+View -> Controller : load(currentUserId, boardId)
+Controller -> Interactor : load(userId, boardId)
+
+Interactor -> BoardDAO : findByOwnerAndId(userId, boardId)
+BoardDAO --> Interactor : selected board
+
+Interactor -> PinDAO : findByOwnerId(userId)
+PinDAO --> Interactor : user's saved pins
+
+Interactor -> Presenter : presentEditor(editorData)
+Presenter -> VM : getState()
+VM --> Presenter : state
+Presenter -> VM : notifyStateChanged()
+
+VM -> View : stateChanged()
+View -> VM : getState()
+VM --> View : editor state
+View --> User : Display board editor
+
+User -> View : Edit name or pins and save
+View -> Controller : save(userId, boardId, name, pinIds)
+Controller -> Interactor : save(inputData)
+
+Interactor -> PinDAO : findByOwnerId(userId)
+PinDAO --> Interactor : user's saved pins
+Interactor -> Interactor : Validate name and pin IDs
+
+Interactor -> BoardDAO : updateOwnedBoard(userId, boardId,\nname, pinIds)
+BoardDAO --> Interactor : UPDATED
+
+Interactor -> Presenter : presentSaved(outputData)
+Presenter -> VM : getState()
+VM --> Presenter : state
+Presenter -> VM : notifyStateChanged()
+
+VM -> View : stateChanged()
+View -> VM : getState()
+VM --> View : updated state
+View --> User : Display updated board
+
+@enduml
