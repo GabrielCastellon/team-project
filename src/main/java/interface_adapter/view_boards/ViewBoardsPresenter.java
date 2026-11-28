@@ -15,7 +15,8 @@ public class ViewBoardsPresenter implements ViewBoardsOutputBoundary {
     @Override
     public void prepareSuccessView(ViewBoardsOutputData outputData) {
         BoardsState loadedState = new BoardsState();
-        outputData.getBoards().forEach(loadedState::addBoard);
+        outputData.getBoards().forEach((id, name) ->
+                loadedState.addBoard(id, name, outputData.getPinCount(id)));
 
         viewModel.setState(loadedState);
         viewModel.notifyStateChanged();

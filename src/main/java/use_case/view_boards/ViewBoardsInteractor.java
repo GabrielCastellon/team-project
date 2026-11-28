@@ -28,10 +28,12 @@ public class ViewBoardsInteractor implements ViewBoardsInputBoundary {
         }
 
         Map<String, String> boardNamesById = new LinkedHashMap<>();
+        Map<String, Integer> pinCounts = new LinkedHashMap<>();
         for (Board board : boards) {
             boardNamesById.put(board.getId(), board.getName());
+            pinCounts.put(board.getId(), board.getPinIds().size());
         }
 
-        outputBoundary.prepareSuccessView(new ViewBoardsOutputData(boardNamesById));
+        outputBoundary.prepareSuccessView(new ViewBoardsOutputData(boardNamesById, pinCounts));
     }
 }
