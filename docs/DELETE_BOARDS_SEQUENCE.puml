@@ -1,0 +1,50 @@
+
+git status@startuml
+title Use Case 5.5 Delete Board — Main Success Scenario
+
+actor User
+participant EditBoardDialog as Dialog
+participant BoardsView as View
+participant DeleteBoardController as Controller
+participant DeleteBoardInteractor as Interactor
+participant JsonBoardDataAccessObject as DAO
+participant DeleteBoardPresenter as Presenter
+participant BoardsViewModel as VM
+
+' Precondition: the Edit board dialog is open for the selected board.
+
+User -> Dialog : Click Delete board
+Dialog --> User : Ask for confirmation
+User -> Dialog : Confirm deletion
+
+Dialog --> View : Delete requested
+View -> Dialog : isDeleteRequested()
+Dialog --> View : true
+
+View -> Controller : execute(currentUserId, boardId)
+Controller -> Interactor : execute(inputData)
+
+Interactor -> DAO : deleteOwnedBoard(userId, boardId)
+DAO --> Interactor : true
+
+Interactor -> Presenter : prepareSuccessView(outputData)
+Presenter -> VM : getState()
+VM --> Presenter : state
+
+' Presenter removes the board from the state and clears the opened board/editor.
+
+Presenter -> VM : notifyStateChanged()
+
+VM -> View : stateChanged()
+View -> VM : getState()
+VM --> View : updatedState
+
+View --> User : Display updated boards list
+
+' Cancel: no delete request is sent.
+' Missing or unowned board: report an error; delete nothing.
+' Storage failure: report an error; do not report success.
+' Saved pins are not deleted or modified.
+
+@enduml
+'@ | Set-Content -Encoding utf8 docs/DELETE_BOARDS_SEQUENCE.puml

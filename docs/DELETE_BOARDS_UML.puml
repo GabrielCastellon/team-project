@@ -1,0 +1,152 @@
+@startuml
+title Use Case 5.5 Delete Board
+top to bottom direction
+skinparam linetype ortho
+skinparam nodesep 48
+skinparam ranksep 38
+hide empty members
+
+' Interface adapters
+class "DeleteBoardController" as Controller {
+    - inputBoundary: DeleteBoardInputBoundary
+    + execute(userId: String, boardId: String): void
+}
+class "DeleteBoardPresenter" as Presenter {
+    - viewModel: BoardsViewModel
+    + prepareSuccessView(data: DeleteBoardOutputData): void
+    + prepareFailView(error: String): void
+}
+class "BoardsViewModel" as VM <<DS>> {
+    - state: BoardsState
+    - listeners: List<BoardsViewModelListener>
+    + getState(): BoardsState
+    + setState(state: BoardsState): void
+    + addListener(listener: BoardsViewModelListener): void
+    + notifyStateChanged(): void
+}
+class "BoardsState" as State {
+    - boards: Map<String, String>
+    - pinCounts: Map<String, Integer>
+    - openedBoard: OpenedBoard
+    - editor: EditBoardEditorState
+    - errorMessage: String
+    + removeBoard(boardId: String): void
+    + clearOpenedBoard(): void
+    + clearEditor(): void
+    + setError(message: String): void
+}
+
+' Application business rules
+class "DeleteBoardInputData" as InData <<DS>> {
+    - userId: String
+    - boardId: String
+    + userId(): String
+    + boardId(): String
+}
+interface "DeleteBoardInputBoundary" as InPort {
+    + execute(data: DeleteBoardInputData): void
+}
+interface "DeleteBoardOutputBoundary" as OutPort {
+    + prepareSuccessView(data: DeleteBoardOutputData): void
+    + prepareFailView(error: String): void
+}
+class "DeleteBoardOutputData" as OutData <<DS>> {
+    - boardId: String
+    + boardId(): String
+}
+class "DeleteBoardInteractor" as UseCase {
+    - boardDAO: DeleteBoardDataAccessInterface
+    - outputBoundary: DeleteBoardOutputBoundary
+    + execute(data: DeleteBoardInputData): void
+}
+interface "DeleteBoardDataAccessInterface" as DAO {
+    + deleteOwnedBoard(userId: String, boardId: String): boolean
+}
+
+' Enterprise business rules
+class Board {
+    - id: String
+    - userId: String
+    - name: String
+    - pinIds: List<String>
+    + getId(): String
+    + getUserId(): String
+    + getName(): String
+    + getPinIds(): List<String>
+}
+
+' Frameworks and drivers
+class "BoardsView" as V {
+    - deleteBoardController: DeleteBoardController
+    - viewModel: BoardsViewModel
+    - currentUserId: String
+    + setCurrentUserId(userId: String): void
+    - showEditBoardDialog(editor: EditBoardEditorState): void
+    + stateChanged(): void
+}
+interface "BoardsViewModelListener" as Listener {
+    + stateChanged(): void
+}
+class "EditBoardDialog" as Dialog {
+    - deleteRequested: boolean
+    + isDeleteRequested(): boolean
+    - confirmDelete(): void
+}
+class "JsonBoardDataAccessObject" as JsonDAO {
+    - filePath: Path
+    + deleteOwnedBoard(userId: String, boardId: String): boolean
+}
+class "boards.json" as File <<file>>
+
+' Layout only. These links position classes in the lecture's columns.
+Controller -[hidden]down-> Presenter
+Presenter -[hidden]down-> VM
+VM -[hidden]down-> Listener
+Listener -[hidden]down-> V
+V -[hidden]down-> Dialog
+
+InData -[hidden]down-> InPort
+InPort -[hidden]down-> OutPort
+OutPort -[hidden]down-> OutData
+OutData -[hidden]down-> State
+
+UseCase -[hidden]down-> DAO
+DAO -[hidden]down-> JsonDAO
+
+Controller -[hidden]right-> InPort
+InPort -[hidden]right-> UseCase
+UseCase -[hidden]right-> Board
+Presenter -[hidden]right-> OutPort
+VM -[hidden]right-> OutData
+OutData -[hidden]right-> DAO
+Listener -[hidden]right-> State
+V -[hidden]right-> JsonDAO
+JsonDAO -[hidden]right-> File
+
+' A solid arrow shows use. A dashed line with a hollow triangle shows interface realization.
+' View, controller, presenter, and listener
+V -[norank]-> Controller
+V -[norank]-> VM
+V .[norank].|> Listener
+V -[norank]-> Dialog
+VM -[norank]-> Listener
+VM *-[norank]- State
+Controller -[norank]-> InPort
+Controller -[norank]-> InData
+Presenter .[norank].|> OutPort
+Presenter -[norank]-> OutData
+Presenter -[norank]-> VM
+
+' Interactor and its boundaries
+UseCase .[norank].|> InPort
+UseCase -[norank]-> InData
+UseCase -[norank]-> OutPort
+UseCase -[norank]-> OutData
+UseCase -[norank]-> DAO
+
+' Persistence
+JsonDAO .[norank].|> DAO
+JsonDAO -[norank]-> Board
+JsonDAO -[norank]-> File
+@enduml
+'@ | Set-Content -Encoding utf8 docs/DELETE_BOARDS_UML.puml
