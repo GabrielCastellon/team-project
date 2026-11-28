@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class DiscoveryService implements DiscoveryInputBoundary {
 
@@ -73,8 +74,12 @@ public final class DiscoveryService implements DiscoveryInputBoundary {
     }
 
     public FeatureVector preference(String profile) throws IOException {
+        return preferenceFor(samples(profile));
+    }
+
+    private FeatureVector preferenceFor(List<Photo> photos) throws IOException {
         List<FeatureVector> vectors = new ArrayList<>();
-        for (Photo photo : samples(profile)) {
+        for (Photo photo : photos) {
             vectors.add(embeddings.embed(photo));
         }
         return FeatureVector.average(vectors);
@@ -82,7 +87,14 @@ public final class DiscoveryService implements DiscoveryInputBoundary {
 
     @Override
     public List<ScoredPhoto> recommend(List<Photo> candidates, String profile) throws IOException {
-        return rank(candidates, List.of(preference(profile)), excluded(List.of(profile)));
+        return recommendFromPhotos(candidates, samples(profile));
+    }
+
+    @Override
+    public List<ScoredPhoto> recommendFromPhotos(List<Photo> candidates, List<Photo> samples)
+            throws IOException {
+        Set<String> savedIds = samples.stream().map(Photo::id).collect(Collectors.toSet());
+        return rank(candidates, List.of(preferenceFor(samples)), savedIds);
     }
 
     @Override

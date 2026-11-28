@@ -4,9 +4,14 @@
 
 ## Scope and status
 
-Status: Design stage/not implemented
-MVP use case: Save Pins
-Planned use cases: View saved pins, edit pin details, seach/filter saved pins
+Saving photos from Discovery and viewing pins are implemented on main. A signed-in user can save a photo from Discovery. 
+After logging out and signing back in, (or restarting app), saved pins are preserved in the user's collection in the Pins tab. 
+Each saved photo appears with its thumbnail, caption and photographer credit. Switching accounts would show the new user's 
+saved collection. 
+
+- Save from Discovery and view the signed-in user's pins (#13, #32)
+- Display thumbnails on saved pin cards (#36, #37)
+- Planned use cases: edit pin details, seach/filter saved pins
 
 Save Pins (Issue #) - 11/14/2026
 
@@ -29,8 +34,30 @@ Save Pins (Issue #) - 11/14/2026
 6. Saved pin is stored so that it can be accessed later
 7. Photofy confirms that the image was successfully saved and updates the interface to reflect the
    saved status
+8. User opens the Pins tab to view their personal collection. The saved cat photo appears as a thumbnail
+   with a caption and photographer credit. After the duplicate save attempt, the cat still appears only once.
+9. Switching to a second account that never saved the cat photo would not display the photo in the Pins tab.
+
+### Demo screenshots
+
+<p>
+  <a href="https://github.com/user-attachments/assets/5914cace-efb3-482b-b588-73c7cbc866ee"><img src="https://github.com/user-attachments/assets/5914cace-efb3-482b-b588-73c7cbc866ee" width="220" alt="Demo screenshot 1"></a>
+  <a href="https://github.com/user-attachments/assets/ea2ccd68-3e60-4e93-90a9-0348f774024a"><img src="https://github.com/user-attachments/assets/ea2ccd68-3e60-4e93-90a9-0348f774024a" width="220" alt="Demo screenshot 2"></a>
+  <a href="https://github.com/user-attachments/assets/bf4a804e-0e02-4ec4-a2bb-608e2281be46"><img src="https://github.com/user-attachments/assets/bf4a804e-0e02-4ec4-a2bb-608e2281be46" width="220" alt="Demo screenshot 3"></a>
+</p>
+
+<p>
+  <a href="https://github.com/user-attachments/assets/8892f2b2-0c4b-4688-bfbe-2659885b2fc9"><img src="https://github.com/user-attachments/assets/8892f2b2-0c4b-4688-bfbe-2659885b2fc9" width="220" alt="Demo screenshot 4"></a>
+  <a href="https://github.com/user-attachments/assets/19f8a508-21b2-450e-84e2-e93da4588a9e"><img src="https://github.com/user-attachments/assets/19f8a508-21b2-450e-84e2-e93da4588a9e" width="220" alt="Demo screenshot 5"></a>
+  <a href="https://github.com/user-attachments/assets/f5034581-311b-4611-9746-8908a4dd06dc"><img src="https://github.com/user-attachments/assets/f5034581-311b-4611-9746-8908a4dd06dc" width="220" alt="Demo screenshot 6"></a>
+</p>
+
+<p>
+  <a href="https://github.com/user-attachments/assets/ec41fc78-8781-4b97-9793-28fee30455df"><img src="https://github.com/user-attachments/assets/ec41fc78-8781-4b97-9793-28fee30455df" width="220" alt="Demo screenshot 7"></a>
+</p>
 
 ## Use Case: Save Pin
+**Status:** Implemented. A signed-in user can save a photo from Discovery and view it in Pins. [PR #37](https://github.com/GabrielCastellon/team-project/pull/37) added thumbnails to the Pins tab.
 
 Primary Actor: Photofy User 
 
@@ -38,8 +65,8 @@ Goal: Save a discovered photograph in the user's personal collection so that it 
 at a later time 
 
 Preconditions: 
-- The user is identified as a Photofy user 
-- The user has discovered a photograph available to save 
+- The user is signed in to Photofy
+- The Discovery tab displays the photo the user wants to save
 
 Trigger: The user presses a save button/icon, triggering request to save a selected photo 
 
@@ -48,20 +75,20 @@ with the user. The pin contains original source metadata. The user receives conf
 photo was saved successfully. 
 
 ### Main success scenario: 
-1. User requests to save a discovered photo 
+1. The user selects **Save** on a photo in Discovery
 2. Photofy checks if the user had already saved this photo from this particular source before
 3. Photofy creates a new Pin object associated with the user that contains original source 
 metadata, and doesn't require the user to provide annotations 
 4. Photofy stores the Pin in persistent storage 
 5. Photofy displays confirmation and updated discovery interface that shows saved status of photo
 
-Extensions:
+### Alternative Flows
 
-2a.The user already saved the photo 
+**2a. The user has already saved this photo.**
 - Photofy informs the user that the photo is already saved 
 - The existing pin remains unchanged and no duplicate is created 
 
-4a. Photofy cannot persist the pin 
+**4a. Photofy cannot store the pin.**
 - Photofy reports that saving was unsuccessful 
 - The photo is not confirmed saved 
 - The user may attempt to save the photo again
@@ -71,39 +98,34 @@ Extensions:
 ### Pin identity 
 1. Each saved pin belongs to one user 
 2. Different users may save the same photograph/source independently 
-3. Saved pins should have distinct ID from source photo 
-4. A user cannot have two saved pins representing the same source/photo 
+3. Each saved pin has its own ID, separate from the source photo’s ID
+4. Each user can have at most one pin for a given source photo
 
-### Persistence
+### Saving a pin
 5. Saving a photo does not require personal annotations 
 6. A successful save must contain original source metadata 
 7. A pin is successfully saved when it has been persistently stored 
-8. Repeatedly saving a photo that is already saved does not create duplicate pins 
-
-### Personalize 
-9. Users may customize title, description and tags associated with a pin 
-10. Editing a pin must not overwrite original source photo or another user's pin
+8. A repeat save preserves the existing pin and its ID
 
 ### Board relationship 
-11. A saved pin may exist without a board 
-12. A saved pin may belong to multiple boards 
-13. An image that is added to board must be a saved pin 
-14. Removing a pin from a board does not delete the pin from the user's saved collection 
-15. Personal annotations belong to a pin, and not associated with a particular board 
+9. A saved pin may exist without a board 
+10. A saved pin may belong to multiple boards 
+11. An image that is added to board must be a saved pin 
+12. Removing a pin from a board does not delete the pin from the user's saved collection 
+13. Personal annotations belong to a pin, and not associated with a particular board 
 
 ### Feature boundaries 
-16. Saving a pin is different from adding an image to recommendation preferences (Kevin)
-17. Board organization is different from pin creation and personalization 
+14. Saving a pin is different from adding an image to recommendation preferences
+15. Board organization is different from pin creation and personalization 
 
 ## Noun–verb analysis
 
-| Nouns — candidate concepts | Verbs — candidate responsibilities |
+| Candidate concept | Role in Save Pin |
 |---|---|
-| User | Saves |
-| Photograph | Retains |
-| Pin | Retrieves |
-| Personal collection | Personalizes |
-| Source information | — |
+| User | Requests to save a discovered photo and later opens Pins to view it. |
+| Photo | Provides the source photo ID, caption, and photographer credit. |
+| Pin | Associates the saved photo with the user who saved it. |
+| Personal collection | Groups the user’s saved pins for later viewing. |
 
 
 ## Clean Architecture Design 

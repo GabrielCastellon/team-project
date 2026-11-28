@@ -15,8 +15,7 @@ import javax.imageio.ImageIO;
 
 public final class ImageLoader {
 
-    private final HttpClient client =
-            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    private HttpClient client;
 
     private final Map<String, BufferedImage> cache =
             new LinkedHashMap<String, BufferedImage>(32, .75f, true) {
@@ -27,15 +26,21 @@ public final class ImageLoader {
                 }
             };
 
-    public synchronized BufferedImage load(String url) throws IOException {
-        if (cache.containsKey(url)) {
-            return cache.get(url);
+    public BufferedImage load(String url) throws IOException {
+        synchronized (cache) {
+            BufferedImage cached = cache.get(url);
+            if (cached != null) {
+                return cached;
+            }
         }
         URI uri = URI.create(url);
         if (!"https".equals(uri.getScheme()) || !"images.unsplash.com".equals(uri.getHost())) {
             throw new IOException("Expected an Unsplash HTTPS image URL");
         }
         try {
+            if (client == null) {
+                client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+            }
             HttpResponse<byte[]> response =
                     client.send(
                             HttpRequest.newBuilder(uri)
@@ -50,8 +55,10 @@ public final class ImageLoader {
             if (image == null) {
                 throw new IOException("Unsupported image format");
             }
-            cache.put(url, image);
-            return image;
+            synchronized (cache) {
+                BufferedImage cached = cache.putIfAbsent(url, image);
+                return cached == null ? image : cached;
+            }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IOException("Image loading cancelled", ex);

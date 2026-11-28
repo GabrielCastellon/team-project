@@ -1,0 +1,34 @@
+@startuml Create_Board_Use_Case
+title Use Case 5.1  Create Board
+
+actor User
+participant BoardsView as View
+participant "CreateBoard\nController" as Controller
+participant "CreateBoard\nInputBoundary" as Input
+participant "CreateBoard\nInteractor" as Interactor
+participant "BoardData\nAccessInterface" as DAO
+participant "CreateBoard\nOutputBoundary" as Output
+participant BoardFactory as Factory
+
+User -> View : Enter name and click Create
+View -> Controller : 1: execute(currentUserId, name)
+Controller -> Input : 1.1: execute(inputData)
+Input --> Interactor : 1.1.1: execute(inputData)
+
+Interactor -> DAO : 1.1.1.1: existsByName(userId, name)
+DAO --> Interactor : false
+
+Interactor -> Factory : 1.1.1.2: create(userId, name)
+Factory --> Interactor : board
+
+Interactor -> DAO : 1.1.1.3: save(board)
+DAO --> Interactor
+
+Interactor -> Output : 1.1.1.4: prepareSuccessView(outputData)
+Output --> Interactor
+
+Interactor --> Input
+Input --> Controller
+Controller --> View
+View --> User : Display new board
+@enduml

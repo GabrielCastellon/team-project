@@ -1,0 +1,151 @@
+@startuml
+title Use Case 5.1 Create Board
+top to bottom direction
+skinparam linetype ortho
+skinparam nodesep 48
+skinparam ranksep 38
+hide empty members
+
+' Interface adapters
+class "CreateBoardController" as Controller {
+    - inputBoundary: CreateBoardInputBoundary
+    + execute(userId: String, name: String): void
+}
+class "CreateBoardPresenter" as Presenter {
+    - viewModel: BoardsViewModel
+    + prepareSuccessView(data: CreateBoardOutputData): void
+    + prepareFailView(error: String): void
+}
+class "BoardsViewModel" as VM <<DS>> {
+    - state: BoardsState
+    - listeners: List<BoardsViewModelListener>
+    + getState(): BoardsState
+    + setState(state: BoardsState): void
+    + addListener(listener: BoardsViewModelListener): void
+    + notifyStateChanged(): void
+}
+class "BoardsState" as State {
+    - boards: Map<String, String>
+    - errorMessage: String
+    + addBoard(id: String, name: String): void
+    + setError(message: String): void
+}
+
+' Application business rules
+class "CreateBoardInputData" as InData <<DS>> {
+    - userId: String
+    - name: String
+    + getUserId(): String
+    + getName(): String
+}
+interface "CreateBoardInputBoundary" as InPort {
+    + execute(data: CreateBoardInputData): void
+}
+interface "CreateBoardOutputBoundary" as OutPort {
+    + prepareSuccessView(data: CreateBoardOutputData): void
+    + prepareFailView(error: String): void
+}
+class "CreateBoardOutputData" as OutData <<DS>> {
+    - boardId: String
+    - boardName: String
+    + getBoardId(): String
+    + getBoardName(): String
+}
+class "CreateBoardInteractor" as UseCase {
+    - boardDAO: BoardDataAccessInterface
+    - outputBoundary: CreateBoardOutputBoundary
+    - boardFactory: BoardFactory
+    + execute(data: CreateBoardInputData): void
+}
+interface "BoardDataAccessInterface" as DAO {
+    + existsByName(userId: String, name: String): boolean
+    + save(board: Board): void
+}
+
+' Enterprise business rules
+class "BoardFactory" as Factory {
+    + create(userId: String, name: String): Board
+}
+class Board {
+    - id: String
+    - userId: String
+    - name: String
+    - pinIds: List<String>
+    + getId(): String
+    + getUserId(): String
+    + getName(): String
+    + getPinIds(): List<String>
+}
+
+' Frameworks and drivers
+class "BoardsView" as V {
+    - controller: CreateBoardController
+    - viewModel: BoardsViewModel
+    - currentUserId: String
+    + setCurrentUserId(userId: String): void
+    - showCreateBoardDialog(): void
+    + stateChanged(): void
+}
+interface "BoardsViewModelListener" as Listener {
+    + stateChanged(): void
+}
+class "JsonBoardDataAccessObject" as JsonDAO {
+    - filePath: Path
+    + existsByName(userId: String, name: String): boolean
+    + save(board: Board): void
+}
+class "boards.json" as File <<file>>
+
+' Layout only. These links position classes in the lecture's columns.
+Controller -[hidden]down-> Presenter
+Presenter -[hidden]down-> VM
+VM -[hidden]down-> Listener
+Listener -[hidden]down-> V
+
+InData -[hidden]down-> InPort
+InPort -[hidden]down-> OutPort
+OutPort -[hidden]down-> OutData
+OutData -[hidden]down-> State
+
+Factory -[hidden]down-> UseCase
+UseCase -[hidden]down-> DAO
+DAO -[hidden]down-> JsonDAO
+
+Controller -[hidden]right-> InPort
+InPort -[hidden]right-> UseCase
+UseCase -[hidden]right-> Board
+Presenter -[hidden]right-> OutPort
+VM -[hidden]right-> OutData
+OutData -[hidden]right-> DAO
+Listener -[hidden]right-> State
+V -[hidden]right-> JsonDAO
+JsonDAO -[hidden]right-> File
+
+' A solid arrow shows use. A dashed line with a hollow triangle shows interface realization.
+' View, controller, presenter, and listener
+V -[norank]-> Controller
+V -[norank]-> VM
+V .[norank].|> Listener
+VM -[norank]-> Listener
+VM *-[norank]- State
+Controller -[norank]-> InPort
+Controller -[norank]-> InData
+Presenter .[norank].|> OutPort
+Presenter -[norank]-> OutData
+Presenter -[norank]-> VM
+
+' Interactor and its boundaries
+UseCase .[norank].|> InPort
+UseCase -[norank]-> InData
+UseCase -[norank]-> OutPort
+UseCase -[norank]-> OutData
+UseCase -[norank]-> DAO
+UseCase -[norank]-> Factory
+UseCase -[norank]-> Board
+Factory -[norank]-> Board
+
+' Persistence
+DAO -[norank]-> Board
+JsonDAO .[norank].|> DAO
+JsonDAO -[norank]-> File
+@enduml

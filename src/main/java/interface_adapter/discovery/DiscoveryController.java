@@ -1,17 +1,24 @@
 package interface_adapter.discovery;
 
 import entity.Photo;
+import entity.Pin;
 
 import interface_adapter.discovery.DiscoveryPresenter.Card;
 import interface_adapter.discovery.DiscoveryPresenter.ThumbnailLoader;
 import interface_adapter.discovery.DiscoveryPresenter.View;
 
 import use_case.discovery.DiscoveryInputBoundary;
+import use_case.view_pins.ViewPinsDataAccessInterface;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 public final class DiscoveryController {
+
+    private static final String ACCOUNT_CHANGED = "Account changed. Request recommendations again.";
 
     private final DiscoveryInputBoundary service;
 
@@ -22,6 +29,9 @@ public final class DiscoveryController {
     private List<Photo> candidates = List.of();
 
     private boolean working;
+    private boolean pinRankingInProgress;
+    private boolean showingPinRecommendations;
+    private long sessionVersion;
 
     public DiscoveryController(
             DiscoveryInputBoundary service,
@@ -49,6 +59,45 @@ public final class DiscoveryController {
         run(
                 () -> presenter.scored(service.recommend(requireCandidates(), a)),
                 "Best matches first; saved images excluded.");
+    }
+
+    public void sessionChanged() {
+        sessionVersion++;
+        if (pinRankingInProgress) {
+            pinRankingInProgress = false;
+            working = false;
+            presenter.status(ACCOUNT_CHANGED);
+            presenter.busy(false);
+        }
+        if (showingPinRecommendations) {
+            showingPinRecommendations = false;
+            presenter.show(List.of(), ACCOUNT_CHANGED);
+        }
+    }
+
+    public void recommendFromPins(Supplier<String> currentOwner, ViewPinsDataAccessInterface savedPins) {
+        String ownerId = currentOwner.get();
+        if (ownerId == null) {
+            presenter.status("Sign in to recommend from your saved pins.");
+            return;
+        }
+        if (working) {
+            return;
+        }
+        List<Photo> searchPage = candidates;
+        run(
+                () -> {
+                    if (searchPage.isEmpty()) {
+                        throw new IllegalArgumentException("Search for images before requesting recommendations");
+                    }
+                    List<Photo> photos = savedPins.findByOwnerId(ownerId).stream().map(Pin::getPhoto).toList();
+                    if (photos.isEmpty()) {
+                        throw new IllegalArgumentException("Save a pin to get recommendations from My Pins");
+                    }
+                    return presenter.scored(service.recommendFromPhotos(searchPage, photos));
+                },
+                "Recommended from your pins. Already saved images are excluded.",
+                () -> Objects.equals(ownerId, currentOwner.get()));
     }
 
     public void mix(String a, String b, double weight) {
@@ -101,15 +150,27 @@ public final class DiscoveryController {
     }
 
     private void run(Callable<List<Card>> task, String message) {
+        run(task, message, null);
+    }
+
+    private void run(Callable<List<Card>> task, String message, BooleanSupplier ownerIsCurrent) {
         if (working) {
             return;
         }
+        boolean fromSavedPins = ownerIsCurrent != null;
+        long requestSession = sessionVersion;
         working = true;
+        pinRankingInProgress = fromSavedPins;
         presenter.busy(true);
         presenter.status("Working…");
         tasks.run(task, (result, failure) -> {
+            if (fromSavedPins && requestSession != sessionVersion) {
+                return;
+            }
             try {
-                if (failure instanceof InterruptedException) {
+                if (fromSavedPins && !ownerIsCurrent.getAsBoolean()) {
+                    presenter.status(ACCOUNT_CHANGED);
+                } else if (failure instanceof InterruptedException) {
                     presenter.status("Cancelled");
                 } else if (failure != null) {
                     String detail = failure.getMessage();
@@ -118,10 +179,12 @@ public final class DiscoveryController {
                 } else if (result == null) {
                     presenter.status(message);
                 } else {
+                    showingPinRecommendations = fromSavedPins;
                     presenter.show(result, result.isEmpty() ? "No images. " + message : message);
                 }
             } finally {
                 working = false;
+                pinRankingInProgress = false;
                 presenter.busy(false);
             }
         });
