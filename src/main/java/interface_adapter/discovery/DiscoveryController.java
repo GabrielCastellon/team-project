@@ -18,6 +18,8 @@ import java.util.function.Supplier;
 
 public final class DiscoveryController {
 
+    private static final String ACCOUNT_CHANGED = "Account changed. Request recommendations again.";
+
     private final DiscoveryInputBoundary service;
 
     private final DiscoveryPresenter presenter;
@@ -27,6 +29,8 @@ public final class DiscoveryController {
     private List<Photo> candidates = List.of();
 
     private boolean working;
+    private boolean showingPinRecommendations;
+    private long sessionVersion;
 
     public DiscoveryController(
             DiscoveryInputBoundary service,
@@ -54,6 +58,14 @@ public final class DiscoveryController {
         run(
                 () -> presenter.scored(service.recommend(requireCandidates(), a)),
                 "Best matches first; saved images excluded.");
+    }
+
+    public void sessionChanged() {
+        sessionVersion++;
+        if (showingPinRecommendations) {
+            showingPinRecommendations = false;
+            presenter.show(List.of(), ACCOUNT_CHANGED);
+        }
     }
 
     public void recommendFromPins(Supplier<String> currentOwner, ViewPinsDataAccessInterface savedPins) {
@@ -125,20 +137,22 @@ public final class DiscoveryController {
     }
 
     private void run(Callable<List<Card>> task, String message) {
-        run(task, message, () -> true);
+        run(task, message, null);
     }
 
-    private void run(Callable<List<Card>> task, String message, BooleanSupplier stillCurrent) {
+    private void run(Callable<List<Card>> task, String message, BooleanSupplier ownerIsCurrent) {
         if (working) {
             return;
         }
+        boolean fromSavedPins = ownerIsCurrent != null;
+        long requestSession = sessionVersion;
         working = true;
         presenter.busy(true);
         presenter.status("Working…");
         tasks.run(task, (result, failure) -> {
             try {
-                if (!stillCurrent.getAsBoolean()) {
-                    presenter.status("Account changed. Request recommendations again.");
+                if (fromSavedPins && (requestSession != sessionVersion || !ownerIsCurrent.getAsBoolean())) {
+                    presenter.status(ACCOUNT_CHANGED);
                 } else if (failure instanceof InterruptedException) {
                     presenter.status("Cancelled");
                 } else if (failure != null) {
@@ -148,6 +162,7 @@ public final class DiscoveryController {
                 } else if (result == null) {
                     presenter.status(message);
                 } else {
+                    showingPinRecommendations = fromSavedPins;
                     presenter.show(result, result.isEmpty() ? "No images. " + message : message);
                 }
             } finally {

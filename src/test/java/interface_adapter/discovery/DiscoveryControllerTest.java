@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import data_access.JsonPinDataAccessObject;
 import entity.FeatureVector;
+import entity.InMemorySessionManager;
 import entity.Photo;
 import entity.Pin;
+import entity.User;
 
 import interface_adapter.save_pin.SavePinViewModel;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.swing.SwingUtilities;
 
@@ -188,52 +191,115 @@ class DiscoveryControllerTest {
         JsonPinDataAccessObject savedPins = new JsonPinDataAccessObject(file);
 
         AtomicReference<String> owner = new AtomicReference<>();
-        AtomicReference<CountDownLatch> done = new AtomicReference<>();
-        AtomicReference<List<String>> shown = new AtomicReference<>();
-        AtomicReference<String> status = new AtomicReference<>();
-        DiscoveryPresenter.View view = new DiscoveryPresenter.View() {
-            public void busy(boolean value) {
-                if (!value) {
-                    done.get().countDown();
-                }
-            }
-
-            public void show(List<DiscoveryPresenter.Card> cards, String message) {
-                shown.set(cards.stream().map(card -> card.photo.id()).toList());
-                status.set(message);
-            }
-
-            public void status(String message) {
-                status.set(message);
-            }
-        };
+        RecordingView view = new RecordingView();
         DiscoveryController controller = new DiscoveryController(
                 service(() -> List.of(first, second)), url -> null, view, new SwingTaskRunner<>());
 
-        runAndWait(done, () -> controller.search("room", 1, "", "relevant"));
+        runAndWait(view.done, () -> controller.search("room", 1, "", "relevant"));
         SwingUtilities.invokeAndWait(() -> controller.recommendFromPins(owner::get, savedPins));
-        assertTrue(status.get().contains("Sign in"));
+        assertTrue(view.message.contains("Sign in"));
 
         owner.set("alice");
-        runAndWait(done, () -> controller.recommendFromPins(owner::get, savedPins));
-        assertEquals(List.of("b"), shown.get());
+        runAndWait(view.done, () -> controller.recommendFromPins(owner::get, savedPins));
+        assertEquals(List.of("b"), view.photoIds);
 
         owner.set("bob");
-        runAndWait(done, () -> controller.recommendFromPins(owner::get, savedPins));
-        assertEquals(List.of("a"), shown.get());
+        runAndWait(view.done, () -> controller.recommendFromPins(owner::get, savedPins));
+        assertEquals(List.of("a"), view.photoIds);
 
         owner.set("no-pins");
-        runAndWait(done, () -> controller.recommendFromPins(owner::get, savedPins));
-        assertTrue(status.get().contains("Save a pin"));
+        runAndWait(view.done, () -> controller.recommendFromPins(owner::get, savedPins));
+        assertTrue(view.message.contains("Save a pin"));
 
         owner.set("alice");
-        runAndWait(done, () -> controller.recommendFromPins(owner::get, id -> {
+        runAndWait(view.done, () -> controller.recommendFromPins(owner::get, id -> {
             List<Pin> pins = savedPins.findByOwnerId(id);
             owner.set("bob");
             return pins;
         }));
-        assertTrue(status.get().contains("Account changed"));
-        assertEquals(List.of("a"), shown.get());
+        assertTrue(view.message.contains("Account changed"));
+        assertEquals(List.of("a"), view.photoIds);
+    }
+
+    @Test
+    void logoutAndAccountSwitchClearCompletedRankings() throws Exception {
+        Photo first = new Photo("a", "First", "image-a", "page-a", "Artist", "profile", "download-a");
+        Photo second = new Photo("b", "Second", "image-b", "page-b", "Artist", "profile", "download-b");
+        User alice = new User("alice", "Alice", "hash");
+        User bob = new User("bob", "Bob", "hash");
+        InMemorySessionManager session = new InMemorySessionManager();
+        Supplier<String> owner = () -> {
+            User user = session.getCurrentUser();
+            return user == null ? null : user.getId();
+        };
+        RecordingView view = new RecordingView();
+        DiscoveryController controller = new DiscoveryController(
+                service(() -> List.of(first, second)), url -> null, view, new SwingTaskRunner<>());
+        session.addSessionListener(controller::sessionChanged);
+        Runnable rank = () -> controller.recommendFromPins(owner, id -> {
+            Photo saved = id.equals("alice") ? first : second;
+            return List.of(new Pin("pin", id, saved));
+        });
+
+        runAndWait(view.done, () -> controller.search("room", 1, "", "relevant"));
+        SwingUtilities.invokeAndWait(() -> session.setCurrentUser(alice));
+        assertEquals(List.of("a", "b"), view.photoIds);
+        runAndWait(view.done, rank);
+        assertEquals(List.of("b"), view.photoIds);
+
+        SwingUtilities.invokeAndWait(() -> session.setCurrentUser(bob));
+        assertTrue(view.photoIds.isEmpty());
+        runAndWait(view.done, rank);
+        assertEquals(List.of("a"), view.photoIds);
+        SwingUtilities.invokeAndWait(session::logout);
+        assertTrue(view.photoIds.isEmpty());
+        SwingUtilities.invokeAndWait(rank);
+        assertTrue(view.message.contains("Sign in"));
+    }
+
+    @Test
+    void signingBackIntoSameAccountCannotRestoreAnEarlierRequest() throws Exception {
+        Photo saved = new Photo("a", "First", "image-a", "page-a", "Artist", "profile", "download-a");
+        Photo other = new Photo("b", "Second", "image-b", "page-b", "Artist", "profile", "download-b");
+        InMemorySessionManager session = new InMemorySessionManager();
+        User alice = new User("alice", "Alice", "hash");
+        session.setCurrentUser(alice);
+        RecordingView view = new RecordingView();
+        DiscoveryController controller = new DiscoveryController(
+                service(() -> List.of(saved, other)), url -> null, view, new SwingTaskRunner<>());
+        session.addSessionListener(controller::sessionChanged);
+        runAndWait(view.done, () -> controller.search("room", 1, "", "relevant"));
+
+        runAndWait(view.done, () -> controller.recommendFromPins(() -> session.getCurrentUser().getId(), id -> {
+            SwingUtilities.invokeLater(() -> {
+                session.logout();
+                session.setCurrentUser(alice);
+            });
+            return List.of(new Pin("pin", id, saved));
+        }));
+        assertEquals(List.of("a", "b"), view.photoIds);
+        assertTrue(view.message.contains("Account changed"));
+    }
+
+    private static final class RecordingView implements DiscoveryPresenter.View {
+        private final AtomicReference<CountDownLatch> done = new AtomicReference<>();
+        private List<String> photoIds = List.of();
+        private String message = "";
+
+        @Override public void busy(boolean value) {
+            if (!value) {
+                done.get().countDown();
+            }
+        }
+
+        @Override public void show(List<DiscoveryPresenter.Card> cards, String status) {
+            photoIds = cards.stream().map(card -> card.photo.id()).toList();
+            message = status;
+        }
+
+        @Override public void status(String status) {
+            message = status;
+        }
     }
 
     private void runAndWait(AtomicReference<CountDownLatch> done, Runnable action)

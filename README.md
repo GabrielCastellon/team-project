@@ -16,7 +16,7 @@ The application uses the **shared foundation**: a runnable Java 17 Swing window 
 |---|---|---|
 | 1 | As a user, I want to create an account and log in so that my boards and preferences are associated with my profile. | Matthew |
 | 2 | As a user, I want to search and browse images so that I can discover inspiration for my projects. | Kevin |
-| 3 | As a user, I want personalized recommendations based on my board's preferences so that I can discover images relevant to my interests. | Kevin |
+| 3 | As a signed-in user, I want to find new images similar to the pins I've saved so I can discover more images I like. | Kevin |
 | 4 | As a user, I want to create, view, and edit individual pins, including their titles, descriptions, images, and tags, so that I can manage saved content. | Alex |
 | 5 | As a user, I want to create, view, and edit boards so that I can organize images by topic. | Gabriel |
 | 6 | As a user, I want to customize my profile and appearance settings so that I can personalize my experience. | Kieran & Matthew |
@@ -27,7 +27,7 @@ The application uses the **shared foundation**: a runnable Java 17 Swing window 
 |---|---|---|---|
 | Matthew | Register / log in | Access collections associated with the signed-in account | Placeholder |
 | Kevin | Search / browse images | Enter terms, view credited results, browse pages | Implemented on this feature branch |
-| Kevin | Recommend images | Rank candidates against saved preference samples | Implemented on this feature branch |
+| Kevin | Recommend from My Pins | Rank the current search results by similarity to my saved pins and exclude photos I've already saved | Implemented on this feature branch |
 | Alex | Manage pins | Create, view and edit saved image details | Placeholder |
 | Gabriel | Manage boards | Create, view, rename and delete image collections | Placeholder |
 | Kieran, coordinating with Matthew | Customize profile | Edit personal display and appearance settings | Placeholder |
@@ -40,7 +40,7 @@ Planned shared concepts are User (stable identity), Profile (display/appearance)
 
 ## API and persistence
 
-Planned external API: [Unsplash](https://unsplash.com/documentation), for keyword search, result metadata, attribution and selection tracking. The shell makes no API calls; opening Discovery constructs the Unsplash adapter. Search/selection actions make the requests. Live access has **not been verified in this migration**. A developer with an access key must record the manual check in the feature PR.
+Discovery uses Unsplash for keyword search, result metadata, attribution and selection tracking. The live desktop check loaded 20 photos and ranked the 19 remaining after one was saved. [Unsplash documentation](https://unsplash.com/documentation)
 
 Planned local JSON storage: accounts (Matthew), profiles (Kieran), pins (Alex) and boards (Gabriel). Filenames and cross-feature contracts remain to be agreed. Kevin's separate discovery module persists preference samples; they are not authenticated boards or accounts. Demonstrate saving, restarting and loading for the final presentation.
 
@@ -65,9 +65,11 @@ Tests run headlessly; the interactive app requires a graphical desktop. The firs
 
 Set `UNSPLASH_ACCESS_KEY` to your own Unsplash Access Key before starting, then open the Discovery tab. With no key, the shell still starts and that tab shows a configuration error; other tabs remain usable. Restart after setting environment variables. Never commit keys.
 
-Search, like samples into preference A/B, rank the current candidate page, mix preferences, rank for a group, or analyze a sample collection. These are demo preference IDs, not authenticated accounts or real team boards. JSON snapshots live under `data/discovery-preferences/`; `DISCOVERY_DATA_DIR` overrides this path. Default embeddings are RGB histograms; optional CLIP requires a separately exported compatible model and `CLIP_MODEL_PATH`.
+Sign in, search for images, and click **Save** on a result. Click **Recommend from My Pins** to see the other results ranked by similarity to the photos in your Pins tab. Signing out or switching accounts clears those recommendations.
 
-See [discovery setup, limitations, math and integration](docs/KEVIN_DISCOVERY.md). Live Unsplash access and real optional CLIP inference remain unverified in this migration. A teammate must review and merge this PR.
+The separate A/B demo lets you like samples, mix preferences, rank for a group, and analyze a sample collection. It stores samples under `data/discovery-preferences/`. Set `DISCOVERY_DATA_DIR` to change that location. The default model compares RGB histograms. Optional CLIP support requires a separately exported model and `CLIP_MODEL_PATH`.
+
+The two-account desktop check used the default colour model. See the [Discovery setup and model details](docs/KEVIN_DISCOVERY.md).
 
 ## Migration tracking
 

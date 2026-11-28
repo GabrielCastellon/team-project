@@ -4,7 +4,7 @@
 
 Implements README stories 2 (search/browse) and 3 (recommendations), plus Taste Mixer, group ranking and preference-board analysis. Java 17, Swing, Unsplash and JSON. This module is integrated as the Discovery tab in the shared Swing shell. It originated as a standalone panel before the foundation. It does not implement accounts, pin CRUD, board CRUD or profiles owned by teammates.
 
-The complete baseline workflow runs with an Unsplash access key. The optional CLIP adapter compiles and its preprocessing is unit tested; pretrained model export/inference and live Unsplash access still need the manual checks below. Colour mode is a real visual histogram, not semantic CLIP. Never describe the baseline as recognizing room styles or objects.
+The live desktop check used an Unsplash access key and the default RGB histogram model. It loaded 20 photos, ranked the other 19 after one was saved, and cleared the ranking when the user signed out. A second account received a new ranking based on its own saved photo. Optional CLIP inference still needs a manual run with a compatible model.
 
 ## Run in VS Code (Windows PowerShell)
 
@@ -22,7 +22,7 @@ Open the Discovery tab after launch. It starts in `rgb-histogram-64-v1` mode unl
 
 ## Demo workflow
 
-To use the same photos as the **Pins** tab, sign in, search, and **Save** one or more results. Select **Recommend from My Pins** to rank the current search page using your account's saved photos. Photos you already saved are excluded. The A/B demo below uses its own preference samples.
+For story 3, sign in, search, and **Save** one or more photos. Select **Recommend from My Pins**. Discovery ranks the rest of the current search page using all the photos in your Pins tab. Signing out or switching accounts clears this ranking. The A/B demo below uses its own preference samples.
 
 1. Search `bedroom`. Pick orientation and relevance/latest order; change Page and Search to browse further.
 2. Like several results into A. Search another style and like images into B. These are preference samples, separate from your teammates' saved pins.
@@ -67,7 +67,7 @@ References: [ONNX Java](https://onnxruntime.ai/docs/get-started/with-java.html),
 
 Dependency inversion: the service owns its interfaces and knows nothing about Gson, ONNX or Swing. Strategy: colour and CLIP providers implement the same interface. Decorator: `CachedEmbeddingProvider` adds bounded caching without changing either provider. The controller depends on `DiscoveryInputBoundary`, which `DiscoveryService` implements, and uses a view boundary, allowing a fake view in tests. Swing widgets remain in the outer layer.
 
-Gabriel: supply stable namespaced board IDs (for example `user:42/board:17`) and implement `PreferenceStore` over your board/pin repositories, mapping pins to `Photo`. That adapter can expose actual board pins to the analyzer without copying board CRUD here. Alex: retain Unsplash metadata when saving a pin; use `ImageCatalog.trackSelection` for actual selections as appropriate, and do not double count if the action already passes through `DiscoveryService.like`. Matthew: supply the authenticated user's scoped IDs and enforce ownership in the adapter. The standalone demo's editable IDs are **not authentication**.
+**Recommend from My Pins** reads the current account from `SessionManager` and loads that account's photos through the same pin repository as the Pins tab. Ranking a single named board would be a separate feature.
 
 To embed the panel, construct `DiscoveryView`, construct `DiscoveryController(service, imageLoader::load, view, new SwingTaskRunner<>())`, call `view.setController(controller)`, then add the panel to the shared application (already wired through `app.DiscoveryModule`). Keep shared startup/account navigation in the team's composition root.
 
@@ -107,7 +107,7 @@ Manual checks before the team demo:
 - Restart to verify saved samples, and remove one to verify preference changes.
 - Try an empty preference ID and a bad key; check clear errors and responsive UI.
 - Export the optional CLIP model, run the same workflow, and verify the model label and plausible semantic ranking.
-- Integrate the panel with the team's actual board/pin adapters before calling this the complete group application.
+- Sign in as a second user and check that My Pins uses that user's collection.
 
 ## Merge meeting checklist
 
@@ -115,11 +115,11 @@ The original discovery PR #2 was merged into Gabriel's main on November 2. The m
 
 1. Use JDK 17 for Maven and the IDE. Run `mvn verify` after combining the branches.
 2. Keep the shared `app.Main` startup and the Discovery panel factory in `ApplicationFactory`; do not start a second window.
-3. Matthew supplies the authenticated user. Gabriel supplies the selected board's stable ID. Replace editable demo IDs with board selections and enforce ownership in the persistence adapter.
-4. Gabriel and Alex connect `PreferenceStore.load` to the photos actually saved in that board. Agree on how `save` updates the board without losing pin titles, tags or other metadata. Do not blindly overwrite their JSON files with this demo store.
+3. Sign in, save a search result, and check that it appears in the Pins tab.
+4. Return to Discovery and select **Recommend from My Pins**. Check that the photo you saved is excluded and the remaining scores are in descending order.
 5. Keep the Unsplash photo ID, image URL, photo page, photographer name and URL, and download tracking URL when converting between Pin and Photo. Track each selection once.
-6. Test the complete flow together: log in, create a board, search, save a pin, recommend, remove a pin, recommend again, restart and reopen the board. Confirm that another account cannot access the first user's private boards.
-7. Try a missing key, failed search, empty board, and unavailable image. The UI should report the failure and allow another action.
+6. Sign out and reopen Discovery. The previous ranking should be gone. After restarting, sign back into the original account and check that its pin is still saved.
+7. Try a missing key, failed search, empty Pins collection, and unavailable image. The UI should report the problem and allow another action.
 
 The controller handles background dispatch; DiscoveryPresenter now handles result formatting and the view boundary. The feature retains synchronous input-boundary response data rather than an interactor output callback. See the explicit tradeoff in the architecture guide.
 

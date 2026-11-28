@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import interface_adapter.save_pin.SavePinPresenter;
 import entity.SessionManager;
 import entity.InMemorySessionManager;
@@ -95,6 +96,13 @@ public final class DiscoveryModule {
                     service, images::load, view, new SwingTaskRunner<>());
             view.setController(controller);
             view.addSavedPinRecommendations(() -> controller.recommendFromPins(currentOwner, pins));
+            sessionManager.addSessionListener(() -> {
+                if (SwingUtilities.isEventDispatchThread()) {
+                    controller.sessionChanged();
+                } else {
+                    SwingUtilities.invokeLater(controller::sessionChanged);
+                }
+            });
 
             if (clip != null) {
                 ClipEmbeddingProvider ownedClip = clip;
