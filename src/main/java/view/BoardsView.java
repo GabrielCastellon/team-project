@@ -2,6 +2,7 @@ package view;
 
 import interface_adapter.boards.BoardsState;
 import interface_adapter.edit_boards.EditBoardController;
+import interface_adapter.delete_boards.DeleteBoardController;
 import interface_adapter.edit_boards.EditBoardEditorState;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.boards.BoardsViewModelListener;
@@ -34,6 +35,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
 
     private final OpenBoardController openBoardController;
     private final EditBoardController editBoardController;
+    private final DeleteBoardController deleteBoardController;
     private EditBoardEditorState shownEditor;
     private final ThumbnailLoader editThumbnails;
     private boolean addPinsOnly;
@@ -83,12 +85,24 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     public BoardsView(CreateBoardController createBoardController, BoardsViewModel viewModel,
                       ViewBoardsController viewBoardsController, OpenBoardController openBoardController,
                       ThumbnailLoader thumbnails, EditBoardController editBoardController) {
+        this(createBoardController, viewModel, viewBoardsController, openBoardController,
+                thumbnails, editBoardController, null);
+    }
+
+    public BoardsView(CreateBoardController createBoardController, BoardsViewModel viewModel,
+                      ViewBoardsController viewBoardsController, OpenBoardController openBoardController,
+                      ThumbnailLoader thumbnails, EditBoardController editBoardController,
+                      DeleteBoardController deleteBoardController) {
         super();
+        this.deleteBoardController = deleteBoardController;
         this.editBoardController = editBoardController;
         this.editThumbnails = thumbnails;
         setLayout(screens);
         this.openBoardController = openBoardController;
         this.detail = new BoardDetailView(thumbnails, () -> {
+            if (viewModel.isDeletePending()) {
+                return;
+            }
             viewModel.getState().clearOpenedBoard();
             viewModel.notifyStateChanged();
         }, editBoardController == null ? null : () -> beginEdit(false),
@@ -259,7 +273,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         BoardsState state = viewModel.getState();
         OpenedBoard board = state.getOpenedBoard();
         if (board != null && currentUserId != null && editBoardController != null
-                && state.getEditor() == null) {
+                && state.getEditor() == null && !viewModel.isDeletePending()) {
             addPinsOnly = addOnly;
             originalEditorPins = null;
             editBoardController.load(currentUserId, board.id());
@@ -277,9 +291,19 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
             originalEditorPins = List.copyOf(editor.selectedPinIds());
         }
         EditBoardDialog dialog = new EditBoardDialog();
-        boolean confirmed = dialog.show(this, editor, addPinsOnly, originalEditorPins, editThumbnails);
+        long accountVersion = viewModel.getAccountVersion();
+        boolean confirmed = dialog.show(this, editor, addPinsOnly, originalEditorPins,
+                editThumbnails, deleteBoardController != null);
         state = viewModel.getState();
-        if (!Objects.equals(owner, currentUserId) || state.getEditor() != editor) {
+        if (!Objects.equals(owner, currentUserId) || state.getEditor() != editor
+                || accountVersion != viewModel.getAccountVersion()) {
+            return;
+        }
+        if (dialog.isDeleteRequested() && deleteBoardController != null) {
+            state.clearEditor();
+            shownEditor = null;
+            originalEditorPins = null;
+            deleteBoardController.execute(owner, editor.boardId());
             return;
         }
         if (!confirmed) {
@@ -315,7 +339,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         card.setRolloverEnabled(true);
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.getAccessibleContext().setAccessibleName("Open board " + name);
-        card.addActionListener(event -> openBoardController.execute(currentUserId, boardId));
+        card.addActionListener(event -> {
+            if (!viewModel.isDeletePending()) {
+                openBoardController.execute(currentUserId, boardId);
+            }
+        });
 
         card.setOpaque(false);
         card.setPreferredSize(

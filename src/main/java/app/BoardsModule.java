@@ -7,6 +7,8 @@ import interface_adapter.open_boards.OpenBoardController;
 import interface_adapter.open_boards.OpenBoardPresenter;
 import entity.BoardFactory;
 import interface_adapter.edit_boards.EditBoardController;
+import interface_adapter.delete_boards.DeleteBoardController;
+import interface_adapter.delete_boards.DeleteBoardPresenter;
 import interface_adapter.edit_boards.EditBoardPresenter;
 import entity.SessionManager;
 import entity.User;
@@ -98,8 +100,10 @@ public final class BoardsModule {
         EditBoardController editController = new EditBoardController(new BackgroundEditBoard(
                 boardDAO, new JsonPinDataAccessObject(pinsFile), new EditBoardPresenter(viewModel),
                 viewModel, new SwingTaskRunner<>(), refresh));
+        DeleteBoardController deleteController = new DeleteBoardController(new BackgroundDeleteBoard(
+                boardDAO, new DeleteBoardPresenter(viewModel), viewModel, new SwingTaskRunner<>(), refresh));
         BoardsView boardsView = new BoardsView(controller, viewModel, viewController, openController,
-                new ImageLoader()::load, editController);
+                new ImageLoader()::load, editController, deleteController);
 
         boardsView.addHierarchyListener(event -> {
             boolean showingChanged =

@@ -1,5 +1,4 @@
-
-git status@startuml
+@startuml
 title Use Case 5.5 Delete Board — Main Success Scenario
 
 actor User

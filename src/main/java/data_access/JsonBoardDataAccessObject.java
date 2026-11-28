@@ -3,6 +3,7 @@ package data_access;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import entity.Board;
+import use_case.delete_boards.DeleteBoardDataAccessInterface;
 import use_case.edit_boards.EditBoardDataAccessInterface;
 import use_case.create_boards.BoardDataAccessInterface;
 import use_case.view_boards.ViewBoardsDataAccessInterface;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import use_case.open_boards.OpenBoardDataAccessInterface;
 
-public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface, OpenBoardDataAccessInterface, EditBoardDataAccessInterface {
+public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface, OpenBoardDataAccessInterface, EditBoardDataAccessInterface, DeleteBoardDataAccessInterface {
     private final Path filePath;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -89,6 +90,17 @@ public class JsonBoardDataAccessObject implements BoardDataAccessInterface, View
         boards.set(target, new Board(boardId, userId, name, pinIds));
         writeBoards(boards);
         return UpdateResult.UPDATED;
+    }
+
+    @Override
+    public synchronized boolean deleteOwnedBoard(String userId, String boardId) {
+        List<Board> boards = readBoards();
+        boolean removed = boards.removeIf(board -> board.getUserId().equals(userId)
+                && board.getId().equals(boardId));
+        if (removed) {
+            writeBoards(boards);
+        }
+        return removed;
     }
 
     private void writeBoards(List<Board> boards) {

@@ -7,6 +7,15 @@ public class BoardsViewModel {
     private BoardsState state = new BoardsState();
     private final List<BoardsViewModelListener> listeners = new ArrayList<>();
     private long accountVersion;
+    private boolean deletePending;
+
+    public boolean isDeletePending() {
+        return deletePending;
+    }
+
+    public void setDeletePending(boolean deletePending) {
+        this.deletePending = deletePending;
+    }
 
     public long getAccountVersion() {
         return accountVersion;
@@ -14,6 +23,7 @@ public class BoardsViewModel {
 
     public void resetForAccountChange() {
         accountVersion++;
+        deletePending = false;
         setState(new BoardsState());
         notifyStateChanged();
     }

@@ -47,6 +47,16 @@ public class BoardsState {
         addBoard(boardId, boardName, 0);
     }
 
+    public void removeBoard(String boardId) {
+        boards.remove(boardId);
+        pinCounts.remove(boardId);
+        if (openedBoard != null && openedBoard.id().equals(boardId)) {
+            clearOpenedBoard();
+        } else if (editor != null && editor.boardId().equals(boardId)) {
+            clearEditor();
+        }
+    }
+
     public int getPinCount(String boardId) {
         return pinCounts.getOrDefault(boardId, 0);
     }
