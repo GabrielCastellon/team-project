@@ -4,9 +4,14 @@
 
 ## Scope and status
 
-Status: Saving photos from Discovery and viewing the signed-in user's saved pins are implemented on main. Thumbnail cards are in PR #37.
-MVP use case: Save Pins
-Planned use cases: View saved pins, edit pin details, seach/filter saved pins
+Saving photos from Discovery and viewing pins are implemented on main. A signed-in user can save a photo from Discovery. 
+After logging out and signing back in, (or restarting app), saved pins are preserved in the user's collection in the Pins tab. 
+Each saved photo appears with its thumbnail, caption and photographer credit. Switching accounts would show the new user's 
+saved collection. 
+
+- Save from Discovery and view the signed-in user's pins (#13, #32)
+- Display thumbnails on saved pin cards (#36, #37)
+- Planned use cases: edit pin details, seach/filter saved pins
 
 Save Pins (Issue #) - 11/14/2026
 
