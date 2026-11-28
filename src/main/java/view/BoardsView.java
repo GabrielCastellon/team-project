@@ -10,6 +10,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.HierarchyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Objects;
 
 public class BoardsView extends JPanel implements BoardsViewModelListener {
@@ -236,9 +238,24 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
 
     private JPanel createBoardCover() {
         return new JPanel() {
+            private boolean hovered;
+
             {
                 setOpaque(false);
                 setPreferredSize(new Dimension(240, 160));
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent event) {
+                        hovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(MouseEvent event) {
+                        hovered = false;
+                        repaint();
+                    }
+                });
             }
 
             @Override
@@ -269,6 +286,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
                 g.setColor(new Color(233, 230, 227));
                 g.fillRect(split, height / 2,
                         width - split, height / 2);
+
+                if (hovered) {
+                    g.setColor(new Color(0, 0, 0, 32));
+                    g.fillRect(0, 0, width, height);
+                }
 
                 g.dispose();
             }
