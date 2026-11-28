@@ -12,6 +12,11 @@ import java.awt.*;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class BoardsView extends JPanel implements BoardsViewModelListener {
@@ -25,6 +30,8 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     private final BoardsViewModel viewModel;
 
     private final JPanel boardsPanel = new JPanel();
+    private final JMenu sortMenu = new JMenu("Sort by");
+    private final JRadioButtonMenuItem mostPins = new JRadioButtonMenuItem("Most pins");
     private final JButton createButton = new JButton("+ Create board") {
         @Override
         protected void paintComponent(Graphics graphics) {
@@ -102,29 +109,56 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout(0, 12));
         header.setBackground(PhotofyTheme.BACKGROUND);
         header.setBorder(new EmptyBorder(28, 32, 24, 32));
-
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(
-                new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        textPanel.setOpaque(false);
 
         JLabel title = new JLabel("Your boards");
         title.setFont(PhotofyTheme.HEADING);
         title.setForeground(PhotofyTheme.TEXT);
 
-        textPanel.add(title);
-
-        JPanel buttonPanel = new JPanel(new GridBagLayout());
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(createButton);
-
-        header.add(textPanel, BorderLayout.WEST);
-        header.add(buttonPanel, BorderLayout.EAST);
+        JPanel actions = new JPanel(new BorderLayout());
+        actions.setOpaque(false);
+        JPanel sortPanel = new JPanel(new GridBagLayout());
+        sortPanel.setOpaque(false);
+        sortPanel.add(createSortMenu());
+        actions.add(sortPanel, BorderLayout.WEST);
+        actions.add(createButton, BorderLayout.EAST);
+        header.add(title, BorderLayout.NORTH);
+        header.add(actions, BorderLayout.CENTER);
 
         return header;
+    }
+
+    private JMenuBar createSortMenu() {
+        JRadioButtonMenuItem byName = new JRadioButtonMenuItem("Name (A–Z)", true);
+        ButtonGroup choices = new ButtonGroup();
+        choices.add(byName);
+        choices.add(mostPins);
+        byName.addActionListener(event -> renderBoards(viewModel.getState()));
+        mostPins.addActionListener(event -> renderBoards(viewModel.getState()));
+
+        BufferedImage sliders = new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = sliders.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(PhotofyTheme.TEXT);
+        g.setStroke(new BasicStroke(1.5f));
+        g.drawLine(2, 5, 16, 5);
+        g.drawLine(2, 13, 16, 13);
+        g.fillOval(9, 2, 6, 6);
+        g.fillOval(4, 10, 6, 6);
+        g.dispose();
+
+        sortMenu.setIcon(new ImageIcon(sliders));
+        sortMenu.setFont(PhotofyTheme.BUTTON);
+        sortMenu.setMnemonic('S');
+        sortMenu.add(byName);
+        sortMenu.add(mostPins);
+        JMenuBar bar = new JMenuBar();
+        bar.setOpaque(false);
+        bar.setBorderPainted(false);
+        bar.add(sortMenu);
+        return bar;
     }
 
     private void configureBoardsPanel() {
@@ -333,19 +367,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     @Override
     public void stateChanged() {
         BoardsState state = viewModel.getState();
-
-        boardsPanel.removeAll();
-        updateColumns();
-
-        if (state.getBoards().isEmpty()) {
-            boardsPanel.add(createEmptyState());
-        } else {
-            state.getBoards().forEach((id, name) ->
-                    boardsPanel.add(createBoardCard(name, state.getPinCount(id))));
-        }
-
-        boardsPanel.revalidate();
-        boardsPanel.repaint();
+        renderBoards(state);
 
         if (!state.getErrorMessage().isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -354,5 +376,33 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
                     "Boards",
                     JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void renderBoards(BoardsState state) {
+        boardsPanel.removeAll();
+        updateColumns();
+        sortMenu.setEnabled(state.getBoards().size() > 1);
+
+        if (state.getBoards().isEmpty()) {
+            boardsPanel.add(createEmptyState());
+        } else {
+            List<Map.Entry<String, String>> boards = new ArrayList<>(state.getBoards().entrySet());
+            Comparator<Map.Entry<String, String>> byName =
+                    Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER);
+            if (mostPins.isSelected()) {
+                Comparator<Map.Entry<String, String>> byCount =
+                        Comparator.comparingInt(board -> state.getPinCount(board.getKey()));
+                boards.sort(byCount.reversed().thenComparing(byName));
+            } else {
+                boards.sort(byName);
+            }
+            for (Map.Entry<String, String> board : boards) {
+                boardsPanel.add(createBoardCard(board.getValue(), state.getPinCount(board.getKey())));
+            }
+        }
+
+        boardsPanel.revalidate();
+        boardsPanel.repaint();
+
     }
 }
