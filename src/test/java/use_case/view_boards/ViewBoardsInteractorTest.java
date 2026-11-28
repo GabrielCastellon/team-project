@@ -17,7 +17,7 @@ class ViewBoardsInteractorTest {
     @Test
     void sendsBoardIdsAndNamesToPresenter() {
         BoardFactory factory = new BoardFactory();
-        Board gym = factory.create("u17", "Gym");
+        Board gym = new Board("gym", "u17", "Gym", List.of("p1", "p2"));
         Board recipes = factory.create("u17", "Recipes");
 
         ViewBoardsDataAccessInterface dao = userId -> {
@@ -31,6 +31,8 @@ class ViewBoardsInteractorTest {
         assertNotNull(presenter.result);
         assertEquals(Map.of(gym.getId(), "Gym", recipes.getId(), "Recipes"),
                 presenter.result.getBoards());
+        assertEquals(2, presenter.result.getPinCount(gym.getId()));
+        assertEquals(0, presenter.result.getPinCount(recipes.getId()));
         assertNull(presenter.error);
     }
 

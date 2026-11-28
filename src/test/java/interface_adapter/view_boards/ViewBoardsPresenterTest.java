@@ -17,9 +17,10 @@ class ViewBoardsPresenterTest {
         viewModel.getState().addBoard("b1", "Old board");
         viewModel.getState().setError("Previous error");
 
-        presenter.prepareSuccessView(new ViewBoardsOutputData(Map.of("b2", "Gym")));
+        presenter.prepareSuccessView(new ViewBoardsOutputData(Map.of("b2", "Gym"), Map.of("b2", 1)));
 
         assertEquals(Map.of("b2", "Gym"), viewModel.getState().getBoards());
+        assertEquals(1, viewModel.getState().getPinCount("b2"));
         assertTrue(viewModel.getState().getErrorMessage().isEmpty());
     }
 

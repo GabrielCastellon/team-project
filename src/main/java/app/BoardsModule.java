@@ -2,6 +2,9 @@ package app;
 
 import data_access.JsonBoardDataAccessObject;
 import entity.BoardFactory;
+import entity.SessionManager;
+import entity.User;
+import java.awt.event.HierarchyEvent;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.create_boards.CreateBoardController;
 import interface_adapter.create_boards.CreateBoardPresenter;
@@ -20,9 +23,8 @@ public final class BoardsModule {
     private BoardsModule() {
     }
 
-    public static BoardsView createPanel() {
-        Path file = Path.of(System.getProperty("user.home"), ".photofy", "boards.json");
-
+    public static BoardsView createPanel(SessionManager sessionManager) {
+        Path file = Path.of("data", "boards.json");
         BoardsViewModel viewModel = new BoardsViewModel();
         CreateBoardPresenter presenter = new CreateBoardPresenter(viewModel);
         JsonBoardDataAccessObject boardDAO = new JsonBoardDataAccessObject(file);
@@ -76,7 +78,30 @@ public final class BoardsModule {
             }
         };
 
-        ViewBoardsController viewController = new ViewBoardsController(refresh);
-        return new BoardsView(new CreateBoardController(backgroundCreate), viewModel, viewController);
+        CreateBoardController controller =
+                new CreateBoardController(backgroundCreate);
+
+        ViewBoardsController viewController =
+                new ViewBoardsController(refresh);
+
+        BoardsView boardsView =
+                new BoardsView(controller, viewModel, viewController);
+
+        boardsView.addHierarchyListener(event -> {
+            boolean showingChanged =
+                    (event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0;
+
+            if (showingChanged && boardsView.isShowing()) {
+                User user = sessionManager.getCurrentUser();
+
+                if (user != null) {
+                    boardsView.setCurrentUserId(user.getId());
+                } else {
+                    boardsView.setCurrentUserId(null);
+                }
+            }
+        });
+
+        return boardsView;
     }
 }
