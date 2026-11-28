@@ -5,9 +5,10 @@ import entity.BoardFactory;
 import entity.SessionManager;
 import entity.User;
 import java.awt.event.HierarchyEvent;
-import interface_adapter.create_board.BoardsViewModel;
+import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.create_board.CreateBoardController;
 import interface_adapter.create_board.CreateBoardPresenter;
+import interface_adapter.view_boards.ViewBoardsController;
 import use_case.create_board.CreateBoardInteractor;
 import use_case.create_board.CreateBoardInputBoundary;
 import use_case.create_board.CreateBoardInputData;
@@ -16,20 +17,20 @@ import use_case.create_board.CreateBoardOutputData;
 import view.SwingTaskRunner;
 import view.BoardsView;
 
-import javax.swing.*;
 import java.nio.file.Path;
 
 public final class BoardsModule {
     private BoardsModule() {
     }
 
-    public static JPanel createPanel(SessionManager sessionManager) {
+    public static BoardsView createPanel(SessionManager sessionManager) {
         Path file = Path.of("data", "boards.json");
         BoardsViewModel viewModel = new BoardsViewModel();
         CreateBoardPresenter presenter = new CreateBoardPresenter(viewModel);
         JsonBoardDataAccessObject boardDAO = new JsonBoardDataAccessObject(file);
         BoardFactory boardFactory = new BoardFactory();
         SwingTaskRunner<Runnable> runner = new SwingTaskRunner<>();
+        BackgroundBoardRefresh refresh = new BackgroundBoardRefresh(boardDAO, viewModel, runner);
 
         CreateBoardInputBoundary backgroundCreate = new CreateBoardInputBoundary() {
             private boolean saving;
@@ -40,7 +41,7 @@ public final class BoardsModule {
                     return;
                 }
                 saving = true;
-                var originalState = viewModel.getState();
+                long accountVersionAtStart = viewModel.getAccountVersion();
 
                 runner.run(() -> {
                     class BoardResult implements CreateBoardOutputBoundary {
@@ -48,7 +49,10 @@ public final class BoardsModule {
 
                         @Override
                         public void prepareSuccessView(CreateBoardOutputData data) {
-                            showResult = () -> presenter.prepareSuccessView(data);
+                            showResult = () -> {
+                                refresh.boardSaved();
+                                presenter.prepareSuccessView(data);
+                            };
                         }
 
                         @Override
@@ -62,7 +66,7 @@ public final class BoardsModule {
                     return result.showResult;
                 }, (showResult, failure) -> {
                     saving = false;
-                    if (viewModel.getState() != originalState) {
+                    if (viewModel.getAccountVersion() != accountVersionAtStart) {
                         return;
                     }
                     if (failure != null) {
@@ -77,7 +81,12 @@ public final class BoardsModule {
         CreateBoardController controller =
                 new CreateBoardController(backgroundCreate);
 
-        BoardsView boardsView = new BoardsView(controller, viewModel);
+        ViewBoardsController viewController =
+                new ViewBoardsController(refresh);
+
+        BoardsView boardsView =
+                new BoardsView(controller, viewModel, viewController);
+
         boardsView.addHierarchyListener(event -> {
             boolean showingChanged =
                     (event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0;

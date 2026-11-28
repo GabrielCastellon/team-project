@@ -28,6 +28,7 @@ public class Board {
     }
 
     public List<String> getPinIds() {
-        return pinIds;
+        // Older JSON records can omit pinIds.
+        return pinIds == null ? List.of() : pinIds;
     }
 }

@@ -30,7 +30,7 @@ The application uses the **shared foundation**: a runnable Java 17 Swing window 
 | Kevin | Recommend images | Rank candidates against saved preference samples | Implemented on this feature branch |
 | Alex | Manage pins | Create, view and edit saved image details | Placeholder |
 | Gabriel | Create Board (5.1) | Create a named board and see it appear in my board list | Implemented on this branch; signed-in account integration pending |
-| Gabriel | View Boards (5.2) | See all boards belonging to my account | Planned  |
+| Gabriel | View Boards (5.2) | See all boards belonging to my account | Implemented on this branch, pending Accounts integration  |
 | Gabriel | Open Board (5.3) | Select a board and see its name and saved pins | Planned  |
 | Kieran, coordinating with Matthew | Customize profile | Edit personal display and appearance settings | Placeholder |
 
