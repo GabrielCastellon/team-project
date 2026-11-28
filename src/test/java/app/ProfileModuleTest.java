@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data_access.JsonProfileDataAccessObject;
+import entity.InMemorySessionManager;
+import entity.SessionManager;
+import entity.User;
 import entity.UserProfile;
 
 import java.awt.Component;
@@ -18,39 +21,115 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Real wiring (JSON DAO → interactors → presenters → view) against a temp file, no Swing window. */
+/** Real wiring (session → JSON DAO → interactors → presenters → view) against a temp file, no Swing window. */
 class ProfileModuleTest {
     // runs the "background" work immediately so the test needs no waiting
     private static final Executor SAME_THREAD = Runnable::run;
 
+    private static final User ALICE = new User("alice-id", "alice", "hash");
+    private static final User BOB = new User("bob-id", "bob", "hash");
+
     @TempDir
     Path directory;
 
-    @Test
-    void panelShowsProfileStoredInFile() throws Exception {
-        Path file = directory.resolve("profiles.json");
-        new JsonProfileDataAccessObject(file).saveProfile(
-                new UserProfile(ProfileModule.USER_ID, "Kieran", "bio", "", null));
+    private Path file;
+    private SessionManager session;
 
-        JPanel panel = createOnEdt(file);
-
-        assertEquals("Kieran", this.<JLabel>find(panel, "displayNameLabel").getText());
+    @BeforeEach
+    void setup() {
+        file = directory.resolve("profiles.json");
+        session = new InMemorySessionManager();
     }
 
     @Test
-    void missingFileShowsDefaultProfile() throws Exception {
-        JPanel panel = createOnEdt(directory.resolve("profiles.json"));
+    void signedOutShowsSignInMessageAndNoProfile() throws Exception {
+        save(ALICE, "Alice");
+
+        JPanel panel = create(SAME_THREAD);
+
+        JLabel signIn = find(panel, "signInLabel");
+        assertEquals("Sign in to view your profile", signIn.getText());
+        assertTrue(shown(panel, signIn));
+        assertFalse(shown(panel, button(panel, "Edit Profile")));
+        assertFalse(containsLabel(panel, "Alice"));
+    }
+
+    @Test
+    void panelShowsSignedInUsersStoredProfile() throws Exception {
+        save(ALICE, "Alice");
+        save(BOB, "Bob");
+        session.setCurrentUser(ALICE);
+
+        JPanel panel = create(SAME_THREAD);
+
+        assertEquals("Alice", this.<JLabel>find(panel, "displayNameLabel").getText());
+        assertTrue(shown(panel, button(panel, "Edit Profile")));
+    }
+
+    @Test
+    void firstTimeSignedInUserSeesDefaultProfile() throws Exception {
+        session.setCurrentUser(ALICE);
+
+        JPanel panel = create(SAME_THREAD);
 
         assertEquals("New user", this.<JLabel>find(panel, "displayNameLabel").getText());
     }
 
     @Test
-    void savedEditIsWrittenToFileAndLoadsInNewPanel() throws Exception {
-        Path file = directory.resolve("profiles.json");
-        JPanel panel = createOnEdt(file);
+    void signingInAfterOpeningTheTabShowsThatUsersProfile() throws Exception {
+        save(ALICE, "Alice");
+        JPanel panel = create(SAME_THREAD);
+
+        session.setCurrentUser(ALICE);
+        flush();
+
+        assertEquals("Alice", this.<JLabel>find(panel, "displayNameLabel").getText());
+        assertTrue(shown(panel, button(panel, "Edit Profile")));
+    }
+
+    @Test
+    void switchingAccountsShowsTheNewUsersProfileAndDiscardsTheOpenForm() throws Exception {
+        save(ALICE, "Alice");
+        save(BOB, "Bob");
+        session.setCurrentUser(ALICE);
+        JPanel panel = create(SAME_THREAD);
+        SwingUtilities.invokeAndWait(() -> {
+            button(panel, "Edit Profile").doClick();
+            this.<JTextField>find(panel, "nameField").setText("Alice's unsaved edit");
+        });
+
+        session.setCurrentUser(BOB);
+        flush();
+
+        assertEquals("Bob", this.<JLabel>find(panel, "displayNameLabel").getText());
+        assertFalse(shown(panel, find(panel, "nameField")));
+        // Alice's half-finished edit was never saved, to her account or Bob's
+        assertEquals("Alice", load(ALICE).displayName());
+        assertEquals("Bob", load(BOB).displayName());
+    }
+
+    @Test
+    void loggingOutHidesTheProfile() throws Exception {
+        save(ALICE, "Alice");
+        session.setCurrentUser(ALICE);
+        JPanel panel = create(SAME_THREAD);
+
+        session.logout();
+        flush();
+
+        assertTrue(shown(panel, find(panel, "signInLabel")));
+        assertFalse(shown(panel, button(panel, "Edit Profile")));
+        assertEquals("", this.<JLabel>find(panel, "displayNameLabel").getText());
+    }
+
+    @Test
+    void savedEditIsWrittenForTheSignedInUserAndLoadsInNewPanel() throws Exception {
+        session.setCurrentUser(ALICE);
+        JPanel panel = create(SAME_THREAD);
 
         SwingUtilities.invokeAndWait(() -> {
             button(panel, "Edit Profile").doClick();
@@ -60,16 +139,15 @@ class ProfileModuleTest {
         SwingUtilities.invokeAndWait(() -> { }); // let the queued render run
 
         assertEquals("Profile updated", this.<JLabel>find(panel, "statusLabel").getText());
-        assertEquals("Kieran", new JsonProfileDataAccessObject(file)
-                .findProfile(ProfileModule.USER_ID).orElseThrow().displayName());
+        assertEquals("Kieran", load(ALICE).displayName());
         // "restart": a brand-new panel on the same file shows the saved name
-        assertEquals("Kieran", this.<JLabel>find(createOnEdt(file), "displayNameLabel").getText());
+        assertEquals("Kieran", this.<JLabel>find(create(SAME_THREAD), "displayNameLabel").getText());
     }
 
     @Test
     void invalidEditShowsErrorAndSavesNothing() throws Exception {
-        Path file = directory.resolve("profiles.json");
-        JPanel panel = createOnEdt(file);
+        session.setCurrentUser(ALICE);
+        JPanel panel = create(SAME_THREAD);
 
         SwingUtilities.invokeAndWait(() -> {
             button(panel, "Edit Profile").doClick();
@@ -79,52 +157,75 @@ class ProfileModuleTest {
         SwingUtilities.invokeAndWait(() -> { });
 
         assertTrue(containsLabel(panel, "Display name is required."));
-        assertTrue(new JsonProfileDataAccessObject(file).findProfile(ProfileModule.USER_ID).isEmpty());
+        assertTrue(new JsonProfileDataAccessObject(file).findProfile(ALICE.getId()).isEmpty());
     }
 
     @Test
     void editIsDisabledUntilProfileHasLoaded() throws Exception {
+        session.setCurrentUser(ALICE);
         List<Runnable> queued = new ArrayList<>();
-        JPanel[] panel = new JPanel[1];
-        SwingUtilities.invokeAndWait(() ->
-                panel[0] = ProfileModule.createPanel(directory.resolve("profiles.json"), queued::add));
+        JPanel panel = create(queued::add);
 
-        SwingUtilities.invokeAndWait(() -> assertFalse(button(panel[0], "Edit Profile").isEnabled()));
+        SwingUtilities.invokeAndWait(() -> assertFalse(button(panel, "Edit Profile").isEnabled()));
 
         queued.remove(0).run(); // the load finishes
         SwingUtilities.invokeAndWait(() -> { });
 
-        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel[0], "Edit Profile").isEnabled()));
+        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel, "Edit Profile").isEnabled()));
     }
 
     @Test
     void cancelIsDisabledWhileSaving() throws Exception {
+        session.setCurrentUser(ALICE);
         List<Runnable> queued = new ArrayList<>();
-        JPanel[] panel = new JPanel[1];
-        SwingUtilities.invokeAndWait(() ->
-                panel[0] = ProfileModule.createPanel(directory.resolve("profiles.json"), queued::add));
+        JPanel panel = create(queued::add);
         queued.remove(0).run();
         SwingUtilities.invokeAndWait(() -> { });
 
         SwingUtilities.invokeAndWait(() -> {
-            button(panel[0], "Edit Profile").doClick();
-            this.<JTextField>find(panel[0], "nameField").setText("Kieran");
-            button(panel[0], "Save").doClick();
-            assertFalse(button(panel[0], "Cancel").isEnabled());
+            button(panel, "Edit Profile").doClick();
+            this.<JTextField>find(panel, "nameField").setText("Kieran");
+            button(panel, "Save").doClick();
+            assertFalse(button(panel, "Cancel").isEnabled());
         });
 
         queued.remove(0).run(); // the save finishes
         SwingUtilities.invokeAndWait(() -> { });
 
-        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel[0], "Cancel").isEnabled()));
+        SwingUtilities.invokeAndWait(() -> assertTrue(button(panel, "Cancel").isEnabled()));
     }
 
     // builds the panel on the Swing thread, then flushes the render it queued
-    private static JPanel createOnEdt(Path file) throws Exception {
+    private JPanel create(Executor executor) throws Exception {
         JPanel[] panel = new JPanel[1];
-        SwingUtilities.invokeAndWait(() -> panel[0] = ProfileModule.createPanel(file, SAME_THREAD));
+        SwingUtilities.invokeAndWait(() -> panel[0] = ProfileModule.createPanel(session, file, executor));
         SwingUtilities.invokeAndWait(() -> { });
         return panel[0];
+    }
+
+    // a session change queues reload() on the EDT, and reload's result queues one render: flush both
+    private static void flush() throws Exception {
+        SwingUtilities.invokeAndWait(() -> { });
+        SwingUtilities.invokeAndWait(() -> { });
+    }
+
+    private void save(User user, String displayName) throws Exception {
+        new JsonProfileDataAccessObject(file).saveProfile(
+                new UserProfile(user.getId(), displayName, "", "", null));
+    }
+
+    private UserProfile load(User user) throws Exception {
+        return new JsonProfileDataAccessObject(file).findProfile(user.getId()).orElseThrow();
+    }
+
+    // true if the component and every parent up to the panel are visible, i.e. its card is the one shown
+    private static boolean shown(Container root, Component component) {
+        for (Component c = component; c != null && c != root; c = c.getParent()) {
+            if (!c.isVisible()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @SuppressWarnings("unchecked")

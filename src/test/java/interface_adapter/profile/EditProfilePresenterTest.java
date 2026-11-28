@@ -20,7 +20,7 @@ class EditProfilePresenterTest {
         presenter = new EditProfilePresenter(viewModel);
         //stored profile already on screen, with a leftover error from an earlier attempt
         viewModel.setState(new ProfileState(
-                "Stored", "stored bio", "/tmp/old.png", "old error", "", "", "", false));
+                "Stored", "stored bio", "/tmp/old.png", "old error", "", "", "", false, true));
     }
 
     @Test
@@ -36,6 +36,7 @@ class EditProfilePresenterTest {
         assertEquals("", state.getAvatarError());
         assertEquals("Profile updated", state.getStatusMessage());
         assertTrue(state.isSaved());
+        assertTrue(state.isSignedIn());
     }
 
     @Test
@@ -78,6 +79,7 @@ class EditProfilePresenterTest {
         assertEquals("/tmp/old.png", state.getAvatarPath());
         assertEquals("", state.getStatusMessage());
         assertFalse(state.isSaved());
+        assertTrue(state.isSignedIn());
     }
 
     @Test

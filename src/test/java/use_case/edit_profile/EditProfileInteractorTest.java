@@ -204,4 +204,16 @@ class EditProfileInteractorTest {
         assertNull(output.success);
         assertFalse(stored.containsKey(USER_ID));
     }
+
+    // precondition: a signed-in user. failLoad proves storage is never touched (else the load message would win)
+    @Test
+    void notSignedInReportsSignInAndNeverTouchesStorage() {
+        failLoad = true;
+
+        interactor.execute(new EditProfileInputData(null, "Kieran", "", ""));
+
+        assertEquals("Sign in to edit your profile", output.failureMessage);
+        assertNull(output.success);
+        assertTrue(stored.isEmpty());
+    }
 }

@@ -16,10 +16,12 @@ public class ProfileState {
     private final String statusMessage;
     //true only right after a successful save: tells the view to leave edit mode
     private final boolean saved;
+    //false when nobody is signed in: the view shows a sign-in message instead of a profile
+    private final boolean signedIn;
 
     public ProfileState(String displayName, String biography, String avatarPath,
                         String nameError, String bioError, String avatarError,
-                        String statusMessage, boolean saved) {
+                        String statusMessage, boolean saved, boolean signedIn) {
         this.displayName = displayName;
         this.biography = biography;
         this.avatarPath = avatarPath;
@@ -28,11 +30,12 @@ public class ProfileState {
         this.avatarError = avatarError;
         this.statusMessage = statusMessage;
         this.saved = saved;
+        this.signedIn = signedIn;
     }
 
     /** The state before anything has loaded: every field empty. */
     public static ProfileState empty() {
-        return new ProfileState("", "", "", "", "", "", "", false);
+        return new ProfileState("", "", "", "", "", "", "", false, false);
     }
 
     public String getDisplayName() {
@@ -65,5 +68,9 @@ public class ProfileState {
 
     public boolean isSaved() {
         return saved;
+    }
+
+    public boolean isSignedIn() {
+        return signedIn;
     }
 }

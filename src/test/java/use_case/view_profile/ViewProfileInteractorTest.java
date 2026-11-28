@@ -1,7 +1,9 @@
 package use_case.view_profile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import entity.UserProfile;
 
@@ -21,7 +23,10 @@ class ViewProfileInteractorTest {
 
     private boolean failLoad;
 
+    private int reads;
+
     private final ViewProfileDataAccessInterface dataAccess = userId -> {
+        reads++;
         if (failLoad) {
             throw new IOException("disk unreadable");
         }
@@ -41,6 +46,7 @@ class ViewProfileInteractorTest {
     private static class RecordingOutputBoundary implements ViewProfileOutputBoundary {
         ViewProfileOutputData success;
         String failureMessage;
+        boolean signInRequired;
 
         @Override
         public void prepareSuccessView(ViewProfileOutputData outputData) {
@@ -50,6 +56,11 @@ class ViewProfileInteractorTest {
         @Override
         public void prepareFailView(String message) {
             failureMessage = message;
+        }
+
+        @Override
+        public void prepareSignInRequiredView() {
+            signInRequired = true;
         }
     }
 
@@ -63,6 +74,7 @@ class ViewProfileInteractorTest {
         assertEquals("I like photos", output.success.getBiography());
         assertEquals("/tmp/me.png", output.success.getAvatarPath());
         assertNull(output.failureMessage);
+        assertFalse(output.signInRequired);
     }
 
     @Test
@@ -83,5 +95,24 @@ class ViewProfileInteractorTest {
 
         assertEquals("Couldn't load your profile, try again", output.failureMessage);
         assertNull(output.success);
+    }
+
+    //precondition: a signed-in user. Without one, nothing is read and nothing is shown
+    @Test
+    void notSignedInAsksToSignInAndNeverReadsStorage() {
+        interactor.execute(new ViewProfileInputData(null));
+
+        assertTrue(output.signInRequired);
+        assertNull(output.success);
+        assertNull(output.failureMessage);
+        assertEquals(0, reads);
+    }
+
+    @Test
+    void blankUserIdCountsAsNotSignedIn() {
+        interactor.execute(new ViewProfileInputData("  "));
+
+        assertTrue(output.signInRequired);
+        assertEquals(0, reads);
     }
 }

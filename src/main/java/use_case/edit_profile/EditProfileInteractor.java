@@ -27,6 +27,12 @@ public class EditProfileInteractor implements EditProfileInputBoundary {
 
     @Override
     public void execute(EditProfileInputData inputData) {
+        // precondition: a signed-in user. The view hides Edit when signed out; this guards the use case itself
+        if (inputData.getUserId() == null || inputData.getUserId().isBlank()) {
+            outputBoundary.prepareFailView("Sign in to edit your profile");
+            return;
+        }
+
         // First-time user: nothing stored yet, so start from a default profile (spec's first-time flow).
         UserProfile existing;
         try {

@@ -7,4 +7,7 @@ public interface ViewProfileOutputBoundary {
 
     /** Called when the stored profile couldn't be read. */
     void prepareFailView(String message);
+
+    /** Called when nobody is signed in, so there is no profile to show. */
+    void prepareSignInRequiredView();
 }

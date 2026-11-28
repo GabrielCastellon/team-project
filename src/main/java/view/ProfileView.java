@@ -24,6 +24,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -35,14 +36,19 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public final class ProfileView extends JPanel implements ProfileViewModelListener {
     private static final String DISPLAY_CARD = "display";
     private static final String EDIT_CARD = "edit";
+    private static final String SIGN_IN_CARD = "signIn";
     private static final Color ERROR_COLOR = new Color(176, 0, 32);
 
     private final ProfileViewModel viewModel;
+    private final ViewProfileController viewProfileController;
     private final EditProfileController editProfileController;
 
     private final CardLayout cards = new CardLayout();
     private final JPanel cardPanel = new JPanel(cards);
     private final JLabel statusLabel = new JLabel(" ");
+
+    // signed-out mode: only a message, no profile and no Edit button
+    private final JLabel signInLabel = new JLabel("", SwingConstants.CENTER);
 
     // display mode
     private final JLabel nameLabel = new JLabel();
@@ -66,10 +72,13 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
                        ProfileViewModel viewModel) {
         super(new BorderLayout());
         this.viewModel = viewModel;
+        this.viewProfileController = viewProfileController;
         this.editProfileController = editProfileController;
 
         cardPanel.add(buildDisplayCard(), DISPLAY_CARD);
         cardPanel.add(buildEditCard(), EDIT_CARD);
+        signInLabel.setName("signInLabel");
+        cardPanel.add(signInLabel, SIGN_IN_CARD);
         add(cardPanel, BorderLayout.CENTER);
         statusLabel.setName("statusLabel");
         statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
@@ -77,6 +86,21 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
 
         // register before loading so the first result can't be missed
         viewModel.addListener(this);
+        reload();
+    }
+
+    /**
+     * Loads the signed-in user's profile again. Called when the view is created and after every
+     * sign-in, account switch or logout. Must run on the event dispatch thread.
+     */
+    public void reload() {
+        // an open form belongs to whoever was signed in before, so it is discarded, never saved
+        cards.show(cardPanel, DISPLAY_CARD);
+        clearMessages();
+        // hide the previous account's values while the new ones load
+        nameLabel.setText("");
+        bioText.setText("");
+        avatarLabel.setText("");
         // nothing to edit until the stored profile has arrived
         editButton.setEnabled(false);
         statusLabel.setText("Loading profile…");
@@ -107,8 +131,12 @@ public final class ProfileView extends JPanel implements ProfileViewModelListene
         bioField.setEnabled(true);
         avatarField.setEnabled(true);
         browseButton.setEnabled(true);
-        // only a successful save leaves edit mode; on failure the form keeps the user's edits
-        if (state.isSaved()) {
+        if (!state.isSignedIn()) {
+            signInLabel.setText(state.getStatusMessage());
+            statusLabel.setText(" ");
+            cards.show(cardPanel, SIGN_IN_CARD);
+        } else if (state.isSaved()) {
+            // only a successful save leaves edit mode; on failure the form keeps the user's edits
             cards.show(cardPanel, DISPLAY_CARD);
         }
     }

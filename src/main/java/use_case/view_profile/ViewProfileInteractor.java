@@ -19,6 +19,12 @@ public class ViewProfileInteractor implements ViewProfileInputBoundary {
 
     @Override
     public void execute(ViewProfileInputData inputData) {
+        // precondition: a signed-in user. Without one there is no profile to read, so storage is never touched
+        if (inputData.getUserId() == null || inputData.getUserId().isBlank()) {
+            outputBoundary.prepareSignInRequiredView();
+            return;
+        }
+
         UserProfile profile;
         try {
             // First-time user: nothing stored yet, so show the same default profile Edit Profile starts from.

@@ -24,7 +24,7 @@ class ProfileViewModelTest {
         AtomicInteger second = new AtomicInteger();
         viewModel.addListener(first::incrementAndGet);
         viewModel.addListener(second::incrementAndGet);
-        ProfileState state = new ProfileState("Kieran", "", "", "", "", "", "", false);
+        ProfileState state = new ProfileState("Kieran", "", "", "", "", "", "", false, true);
 
         viewModel.setState(state);
 

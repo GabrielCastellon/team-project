@@ -2,6 +2,8 @@ package app;
 
 import data_access.FileSystemAvatarFileChecker;
 import data_access.JsonProfileDataAccessObject;
+import entity.SessionManager;
+import entity.User;
 import interface_adapter.profile.EditProfileController;
 import interface_adapter.profile.EditProfilePresenter;
 import interface_adapter.profile.ProfileViewModel;
@@ -14,23 +16,22 @@ import view.ProfileView;
 import java.nio.file.Path;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 /** Wires Kieran's profile feature (View Profile + Edit Profile). Construction only, no logic. */
 public final class ProfileModule {
-    // Placeholder until Matthew's login provides the signed-in user; this is the only place to change.
-    static final String USER_ID = "demo-user";
-
     static final Path PROFILE_FILE = Path.of("data", "profiles.json");
 
     private ProfileModule() { }
 
-    public static JPanel createPanel() {
-        return createPanel(PROFILE_FILE, backgroundExecutor());
+    public static JPanel createPanel(SessionManager sessionManager) {
+        return createPanel(sessionManager, PROFILE_FILE, backgroundExecutor());
     }
 
-    // Composition seam: tests pass a temp file and a same-thread executor.
-    static JPanel createPanel(Path profileFile, Executor executor) {
+    // Composition seam: tests pass their own session, a temp file and a same-thread executor.
+    static JPanel createPanel(SessionManager sessionManager, Path profileFile, Executor executor) {
         // one DAO object serves both use cases, each through its own narrow interface
         JsonProfileDataAccessObject profiles = new JsonProfileDataAccessObject(profileFile);
         ProfileViewModel viewModel = new ProfileViewModel();
@@ -40,10 +41,21 @@ public final class ProfileModule {
         EditProfileInteractor editProfile = new EditProfileInteractor(
                 profiles, new FileSystemAvatarFileChecker(), new EditProfilePresenter(viewModel));
 
-        return new ProfileView(
-                new ViewProfileController(viewProfile, USER_ID, executor),
-                new EditProfileController(editProfile, USER_ID, executor),
+        // The only place Profile reads the session: controllers get just the id (null when signed out)
+        Supplier<String> currentUserId = () -> {
+            User user = sessionManager.getCurrentUser();
+            return user == null ? null : user.getId();
+        };
+
+        ProfileView view = new ProfileView(
+                new ViewProfileController(viewProfile, currentUserId, executor),
+                new EditProfileController(editProfile, currentUserId, executor),
                 viewModel);
+
+        // Sign-in, account switch or logout: show the new user's profile (or the sign-in message).
+        // The session may notify from any thread, and the view must only be touched on the EDT.
+        sessionManager.addSessionListener(() -> SwingUtilities.invokeLater(view::reload));
+        return view;
     }
 
     // Single thread: a load and a save never overlap. Daemon: it never keeps the app open after the window closes.

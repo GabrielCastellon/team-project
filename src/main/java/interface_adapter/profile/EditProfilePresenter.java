@@ -18,7 +18,7 @@ public class EditProfilePresenter implements EditProfileOutputBoundary {
     public void prepareSuccessView(EditProfileOutputData outputData) {
         viewModel.setState(new ProfileState(
                 outputData.getDisplayName(), outputData.getBiography(), outputData.getAvatarPath(),
-                "", "", "", SUCCESS_MESSAGE, true));
+                "", "", "", SUCCESS_MESSAGE, true, true));
     }
 
     //BR5a-5c: nothing was saved, so keep the stored values and put the error next to its field
@@ -36,7 +36,7 @@ public class EditProfilePresenter implements EditProfileOutputBoundary {
         }
         viewModel.setState(new ProfileState(
                 current.getDisplayName(), current.getBiography(), current.getAvatarPath(),
-                nameError, bioError, avatarError, "", false));
+                nameError, bioError, avatarError, "", false, current.isSignedIn()));
     }
 
     //BR6a: save failed, keep stored values; the view keeps the form filled because saved is false
@@ -45,6 +45,6 @@ public class EditProfilePresenter implements EditProfileOutputBoundary {
         ProfileState current = viewModel.getState();
         viewModel.setState(new ProfileState(
                 current.getDisplayName(), current.getBiography(), current.getAvatarPath(),
-                "", "", "", message, false));
+                "", "", "", message, false, current.isSignedIn()));
     }
 }
