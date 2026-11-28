@@ -75,7 +75,7 @@ The two-account desktop check used the default colour model. See the [Discovery 
 
 ## Kieran’s Profile panel
 
-Open the Profile tab to see the stored display name, biography and avatar. **Edit Profile** opens a form, **Save** validates (name required and at most 30 characters, biography at most 300, avatar empty or an existing .png/.jpg/.jpeg) and shows errors next to each field, **Cancel** discards edits. Profiles are saved to `data/profiles.json` (gitignored) and reload after a restart. Until login exists, the profile belongs to the placeholder user `demo-user`, set in one place in `app/ProfileModule`.
+Open the Profile tab to see the stored display name, biography and avatar. **Edit Profile** opens a form, **Save** validates (name required and at most 30 characters, biography at most 300, avatar empty or an existing .png/.jpg/.jpeg) and shows errors next to each field, **Cancel** discards edits. Profiles are saved to `data/profiles.json` (gitignored) and reload after a restart. The tab shows only the signed-in user's profile: signed out, it shows "Sign in to view your profile", and it reloads after every sign-in, account switch or logout.
 
 See [profile use case, class and sequence diagrams, and design decisions](docs/KIERAN_PROFILE.md). Change Appearance (theme, font size) is the planned stretch use case.
 
