@@ -12,13 +12,17 @@ import view.DiscoveryView;
 import view.SwingTaskRunner;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import interface_adapter.save_pin.SavePinPresenter;
 import entity.SessionManager;
 import entity.InMemorySessionManager;
 
 /** Wires Kevin's module only; the shell remains usable without discovery configuration. */
 public final class DiscoveryModule {
+    static final Path DEFAULT_PINS_FILE = Path.of("data", "pins.json");
+
     private DiscoveryModule() { }
 
     public static JPanel createPanel() {
@@ -27,7 +31,11 @@ public final class DiscoveryModule {
 
     //overloaded panel creation method
     public static JPanel createPanel(SessionManager sessionManager) {
-        return createPanel(System.getenv(), sessionManager);
+        return createPanel(sessionManager, DEFAULT_PINS_FILE);
+    }
+
+    static JPanel createPanel(SessionManager sessionManager, Path pinsFile) {
+        return createPanel(System.getenv(), sessionManager, pinsFile);
     }
 
     static JPanel createPanel(Map<String, String> configuration) {
@@ -36,6 +44,11 @@ public final class DiscoveryModule {
 
     // Explicit configuration keeps composition tests independent of machine credentials.
     static JPanel createPanel(Map<String, String> configuration, SessionManager sessionManager) {
+        return createPanel(configuration, sessionManager, DEFAULT_PINS_FILE);
+    }
+
+    private static JPanel createPanel(
+            Map<String, String> configuration, SessionManager sessionManager, Path pinsFile) {
         ClipEmbeddingProvider clip = null;
         try {
             // Validate required configuration before allocating optional model resources.
@@ -60,28 +73,40 @@ public final class DiscoveryModule {
 
             SavePinPresenter savePinPresenter = new SavePinPresenter(savePinViewModel);
 
-            //where pins are stored
-            JsonPinDataAccessObject pins = new JsonPinDataAccessObject(Path.of("data",
-                    "pins.json"));
+            JsonPinDataAccessObject pins = new JsonPinDataAccessObject(pinsFile);
             //save pin interactor logic
             SavePinInteractor savePinInteractor = new SavePinInteractor(pins, savePinPresenter);
             //button calls controller with user ID and selected photo
             SavePinController savePinController = new SavePinController(savePinInteractor);
 
-            //.setSaveAction() stores action; when card builds each card save button appears
-            //case of signed out, presenter reports message through viewmodel that view listens to
-            view.setSaveAction(photo ->
-            {
+            Supplier<String> currentOwner = () -> {
                 User user = sessionManager.getCurrentUser();
-                if (user == null) {
+                return user == null ? null : user.getId();
+            };
+            view.setSaveAction(photo -> {
+                String ownerId = currentOwner.get();
+                if (ownerId == null) {
                     savePinPresenter.prepareFailView("Sign in to save a photo");
                 } else {
-                    savePinController.execute(user.getId(), photo);
+                    savePinController.execute(ownerId, photo);
                 }
             });
 
-            view.setController(new DiscoveryController(
-                    service, images::load, view, new SwingTaskRunner<>()));
+            DiscoveryController controller = new DiscoveryController(
+                    service, images::load, view, new SwingTaskRunner<>());
+            view.setController(controller);
+            view.addSavedPinRecommendations(() -> controller.recommendFromPins(currentOwner, pins));
+            Runnable onSessionChange = () -> {
+                view.clearSavedFeedback();
+                controller.sessionChanged();
+            };
+            sessionManager.addSessionListener(() -> {
+                if (SwingUtilities.isEventDispatchThread()) {
+                    onSessionChange.run();
+                } else {
+                    SwingUtilities.invokeLater(onSessionChange);
+                }
+            });
 
             if (clip != null) {
                 ClipEmbeddingProvider ownedClip = clip;

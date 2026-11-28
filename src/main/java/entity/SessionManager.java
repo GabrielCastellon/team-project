@@ -6,4 +6,7 @@ public interface SessionManager {
     void setCurrentUser(User user);
     boolean isLoggedIn();
     void logout();
+
+    /** Runs after a sign-in, account switch or logout for this application session. */
+    void addSessionListener(Runnable listener);
 }

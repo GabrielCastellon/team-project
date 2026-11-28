@@ -59,6 +59,8 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
 
     private final JPanel controls = new JPanel();
 
+    private final JPanel ranking = row();
+
     private final JPanel grid = new JPanel(new GridLayout(0, 3, 12, 12));
 
     private DiscoveryController controller;
@@ -102,7 +104,6 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
         profiles.add(button("Show A", () -> controller.samples(a.getText())));
         profiles.add(button("Show B", () -> controller.samples(b.getText())));
         controls.add(profiles);
-        JPanel ranking = row();
         ranking.add(button("Recommend A", () -> controller.recommend(a.getText())));
         weight.setMajorTickSpacing(25);
         weight.setPaintLabels(true);
@@ -140,6 +141,20 @@ public final class DiscoveryView extends JPanel implements DiscoveryPresenter.Vi
 
     public void setController(DiscoveryController controller) {
         this.controller = controller;
+    }
+
+    public void addSavedPinRecommendations(Runnable action) {
+        ranking.add(button("Recommend from My Pins", action));
+    }
+
+    public void clearSavedFeedback() {
+        for (JLabel label : saveLabels.values()) {
+            label.setText("");
+        }
+        SavePinState lastSave = savePinViewModel.getState();
+        if (lastSave != null && lastSave.getMessage().equals(status.getText())) {
+            status("");
+        }
     }
 
     //stores an action for later

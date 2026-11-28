@@ -17,6 +17,8 @@ public interface DiscoveryInputBoundary {
 
     List<ScoredPhoto> recommend(List<Photo> candidates, String profile) throws IOException;
 
+    List<ScoredPhoto> recommendFromPhotos(List<Photo> candidates, List<Photo> samples) throws IOException;
+
     List<ScoredPhoto> mix(List<Photo> candidates, String a, String b, double weight)
             throws IOException;
 

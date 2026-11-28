@@ -23,25 +23,24 @@ import data_access.ImageLoader;
 public final class ApplicationFactory {
     private final Supplier<JPanel> discoveryFactory;
     private final SessionManager sessionManager;
-    private static final Path DEFAULT_PINS_FILE = Path.of("data","pins.json");
     private final Path pinsFile;
 
 
     public ApplicationFactory() {
-        this(new InMemorySessionManager(), DEFAULT_PINS_FILE);
+        this(new InMemorySessionManager(), DiscoveryModule.DEFAULT_PINS_FILE);
     }
 
     // Composition seam for an isolated shell integration test with real discovery wiring.
     ApplicationFactory(SessionManager sessionManager, Path pinsFile) {
         this.sessionManager = sessionManager;
         this.pinsFile = pinsFile;
-        this.discoveryFactory = () -> DiscoveryModule.createPanel(sessionManager);
+        this.discoveryFactory = () -> DiscoveryModule.createPanel(sessionManager, pinsFile);
     }
 
     ApplicationFactory(Supplier<JPanel> discoveryFactory) {
         this.discoveryFactory = java.util.Objects.requireNonNull(discoveryFactory);
         this.sessionManager = new InMemorySessionManager();
-        this.pinsFile = DEFAULT_PINS_FILE;
+        this.pinsFile = DiscoveryModule.DEFAULT_PINS_FILE;
     }
 
     public MainView createView() {
