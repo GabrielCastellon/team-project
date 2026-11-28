@@ -16,8 +16,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import use_case.open_boards.OpenBoardDataAccessInterface;
 
-public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface {
+public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface, OpenBoardDataAccessInterface {
     private final Path filePath;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -36,6 +38,13 @@ public class JsonBoardDataAccessObject implements BoardDataAccessInterface, View
         }
 
         return userBoards;
+    }
+
+    @Override
+    public Optional<Board> findByOwnerAndId(String userId, String boardId) {
+        return findByUserId(userId).stream()
+                .filter(board -> board.getId().equals(boardId))
+                .findFirst();
     }
 
     @Override

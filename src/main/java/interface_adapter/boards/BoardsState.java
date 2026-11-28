@@ -1,5 +1,6 @@
 package interface_adapter.boards;
 
+import interface_adapter.open_boards.OpenBoardPresenter.OpenedBoard;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -7,6 +8,20 @@ import java.util.Map;
 public class BoardsState {
     private final Map<String, String> boards = new LinkedHashMap<>();
     private final Map<String, Integer> pinCounts = new LinkedHashMap<>();
+    private OpenedBoard openedBoard;
+
+    public OpenedBoard getOpenedBoard() {
+        return openedBoard;
+    }
+
+    public void setOpenedBoard(OpenedBoard board) {
+        openedBoard = board;
+    }
+
+    public void clearOpenedBoard() {
+        openedBoard = null;
+    }
+
     private String errorMessage = "";
 
     public Map<String, String> getBoards() {

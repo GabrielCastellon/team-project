@@ -6,7 +6,7 @@ skinparam nodesep 48
 skinparam ranksep 38
 hide empty members
 
-' Proposed design. Shared classes show only members relevant to opening a board.
+' Shared classes show only members relevant to opening a board.
 class "OpenBoardController" as Controller {
     - inputBoundary: OpenBoardInputBoundary
     + execute(userId: String, boardId: String): void
@@ -29,15 +29,15 @@ class "BoardsView" as View {
     - openBoardController: OpenBoardController
     - viewModel: BoardsViewModel
     - currentUserId: String
-    - openSelectedBoard(boardId: String): void
+    - createBoardCard(boardId: String, name: String, pinCount: int): JButton
     + stateChanged(): void
 }
 class "BoardsState" as State {
     - boards: Map<String, String>
-    - openedBoard: OpenBoardOutputData
+    - openedBoard: OpenedBoard
     - errorMessage: String
-    + getOpenedBoard(): OpenBoardOutputData
-    + setOpenedBoard(board: OpenBoardOutputData): void
+    + getOpenedBoard(): OpenedBoard
+    + setOpenedBoard(board: OpenedBoard): void
     + clearOpenedBoard(): void
     + setError(message: String): void
 }
@@ -45,8 +45,8 @@ class "BoardsState" as State {
 class "OpenBoardInputData" as InData <<DS>> {
     - userId: String
     - boardId: String
-    + getUserId(): String
-    + getBoardId(): String
+    + userId(): String
+    + boardId(): String
 }
 interface "OpenBoardInputBoundary" as InPort {
     + execute(data: OpenBoardInputData): void
@@ -57,15 +57,17 @@ interface "OpenBoardOutputBoundary" as OutPort {
     + prepareFailView(error: String): void
 }
 class "OpenBoardOutputData" as OutData <<DS>> {
+    - boardId: String
     - boardName: String
     - pins: List<PinSummary>
-    + getBoardName(): String
-    + getPins(): List<PinSummary>
+    + boardName(): String
+    + pins(): List<PinSummary>
 }
 class PinSummary <<DS>> {
     - pinId: String
     - description: String
     - imageUrl: String
+    - photographer: String
 }
 class "OpenBoardInteractor" as UseCase {
     - boardDAO: OpenBoardDataAccessInterface
@@ -78,6 +80,12 @@ interface "OpenBoardDataAccessInterface" as BoardPort {
 }
 interface "ViewPinsDataAccessInterface" as PinPort {
     + findByOwnerId(ownerId: String): List<Pin>
+}
+
+class OpenedBoard <<DS>> {
+    - id: String
+    - name: String
+    - pins: List<PinCard>
 }
 
 class Board {
@@ -104,7 +112,7 @@ class "JsonBoardDataAccessObject" as BoardDAO {
 class "JsonPinDataAccessObject" as PinDAO {
     + findByOwnerId(ownerId: String): List<Pin>
 }
-class "boards.json" as BoardsFile <<file>>
+class "data/boards.json" as BoardsFile <<file>>
 class "data/pins.json" as PinsFile <<file>>
 
 ' Same left-to-right columns and vertical order as View Boards.
@@ -139,7 +147,8 @@ View -[norank]-> VM
 View .[norank].|> Listener
 VM -[norank]-> Listener
 VM *-[norank]- State
-State -[norank]-> OutData
+State -[norank]-> OpenedBoard
+Presenter ..> OpenedBoard
 Controller -[norank]-> InPort
 Controller -[norank]-> InData
 Presenter .[norank].|> OutPort

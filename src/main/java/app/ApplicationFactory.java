@@ -51,7 +51,7 @@ public final class ApplicationFactory {
         features.put("Discovery", discoveryFactory);
         features.put("Pins", this::createPinsPanel);
         features.put("Boards",
-                () -> BoardsModule.createPanel(sessionManager));
+                () -> BoardsModule.createPanel(sessionManager, Path.of("data", "boards.json"), pinsFile));
         features.put("Profile", () -> new PlaceholderView("Profile", "Kieran and Matthew"));
         return new MainView(features);
     }

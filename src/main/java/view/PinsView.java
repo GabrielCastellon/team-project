@@ -13,6 +13,7 @@ import interface_adapter.view_pins.ViewPinsPresenter.PinCard;
 import interface_adapter.discovery.DiscoveryPresenter.ThumbnailLoader;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Locale;
 
 /*View saved pins then display the current user's collection. End of Part 3 in sequence UML marks
 selected photo saved. Opening pins - PinsView.showPins(...) puts their descriptions on screen.
@@ -23,6 +24,8 @@ determines how to display them in List<String>. Separate responsibility from JSO
 public class PinsView extends JPanel implements ViewPinsPresenter.View {
     //field for visible rows
     private final DefaultListModel<PinCard> pins = new DefaultListModel<>();
+    private final DefaultListModel<PinCard> visiblePins = new DefaultListModel<>();
+    private final boolean boardGallery;
     private final JLabel status = new JLabel();
     private final ThumbnailLoader thumbnailLoader;
     //maps icon to photo URL
@@ -33,10 +36,15 @@ public class PinsView extends JPanel implements ViewPinsPresenter.View {
 
     //Swing view for card for each pin
     public PinsView(ThumbnailLoader thumbnailLoader){
+        this(thumbnailLoader, false);
+    }
+
+    PinsView(ThumbnailLoader thumbnailLoader, boolean boardGallery) {
         super(new BorderLayout());
         this.thumbnailLoader = thumbnailLoader;
+        this.boardGallery = boardGallery;
         //add takes composition and position
-        JList<PinCard> list = new JList<>(pins);
+        JList<PinCard> list = new JList<>(boardGallery ? visiblePins : pins);
         JPanel card = new JPanel(new BorderLayout(0,6));
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
@@ -51,6 +59,20 @@ public class PinsView extends JPanel implements ViewPinsPresenter.View {
         card.add(thumbnail, BorderLayout.NORTH);
         card.add(caption, BorderLayout.CENTER);
         card.add(credit, BorderLayout.SOUTH);
+
+        if (boardGallery) {
+            list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
+            list.setVisibleRowCount(-1);
+            list.setFixedCellWidth(202);
+            list.setFixedCellHeight(224);
+            list.setBackground(Color.WHITE);
+            card.setBorder(BorderFactory.createEmptyBorder(4, 0, 12, 14));
+            thumbnail.setPreferredSize(new Dimension(188, 158));
+            caption.setFont(PhotofyTheme.BUTTON);
+            credit.setFont(PhotofyTheme.BODY);
+        }
+        caption.putClientProperty("html.disable", true);
+        credit.putClientProperty("html.disable", true);
 
         list.setCellRenderer((rows, item, index, isSelected, hasFocus) -> {
             String url = item.imageURL();
@@ -79,12 +101,46 @@ public class PinsView extends JPanel implements ViewPinsPresenter.View {
             credit.setForeground(foreground);
             return card;
         });
-        add(new JScrollPane(list), BorderLayout.CENTER);
-        add(status, BorderLayout.SOUTH);
+        JScrollPane scroll = new JScrollPane(list);
+        if (boardGallery) {
+            scroll.setBorder(null);
+            scroll.getViewport().setBackground(Color.WHITE);
+            scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scroll.getVerticalScrollBar().setUnitIncrement(24);
+        }
+        add(scroll, BorderLayout.CENTER);
+        if (!boardGallery) add(status, BorderLayout.SOUTH);
+    }
+
+    int filterPins(String text) {
+        String query = text.strip().toLowerCase(Locale.ROOT);
+        visiblePins.clear();
+        for (int i = 0; i < pins.size(); i++) {
+            PinCard pin = pins.get(i);
+            String searchable = pin.description() + " " + pin.photographer();
+            if (searchable.toLowerCase(Locale.ROOT).contains(query)) visiblePins.addElement(pin);
+        }
+        return visiblePins.size();
     }
 
     private ImageIcon loadThumbnail(String imageURL) throws Exception {
         BufferedImage photo = thumbnailLoader.load(imageURL);
+        if (boardGallery) {
+            int width = 188;
+            int height = 158;
+            double ratio = Math.max((double) width / photo.getWidth(), (double) height / photo.getHeight());
+            int w = (int) Math.ceil(photo.getWidth() * ratio);
+            int h = (int) Math.ceil(photo.getHeight() * ratio);
+            BufferedImage cropped = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = cropped.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.fillRoundRect(0, 0, width, height, 22, 22);
+            g.setComposite(AlphaComposite.SrcIn);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(photo, (width - w) / 2, (height - h) / 2, w, h, null);
+            g.dispose();
+            return new ImageIcon(cropped);
+        }
 
         //scales real image into size of thumbnail
         double scale = Math.min(240.0/photo.getWidth(), 140.0/photo.getHeight());

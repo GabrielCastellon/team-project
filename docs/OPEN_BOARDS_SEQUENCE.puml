@@ -25,7 +25,8 @@ Interactor -> Interactor : Build OpenBoardOutputData with the board name\nand a 
 Interactor -> Presenter : prepareSuccessView(outputData)
 Presenter -> VM : getState()
 VM --> Presenter : state
-Presenter -> State : setOpenedBoard(outputData)
+Presenter -> Presenter : Map pin summaries to display cards
+Presenter -> State : setOpenedBoard(openedBoard)
 Presenter -> VM : notifyStateChanged()
 VM -> View : stateChanged()
 View -> VM : getState()

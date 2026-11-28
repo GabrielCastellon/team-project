@@ -1,6 +1,10 @@
 package app;
 
 import data_access.JsonBoardDataAccessObject;
+import data_access.JsonPinDataAccessObject;
+import data_access.ImageLoader;
+import interface_adapter.open_boards.OpenBoardController;
+import interface_adapter.open_boards.OpenBoardPresenter;
 import entity.BoardFactory;
 import entity.SessionManager;
 import entity.User;
@@ -24,7 +28,10 @@ public final class BoardsModule {
     }
 
     public static BoardsView createPanel(SessionManager sessionManager) {
-        Path file = Path.of("data", "boards.json");
+        return createPanel(sessionManager, Path.of("data", "boards.json"), Path.of("data", "pins.json"));
+    }
+
+    static BoardsView createPanel(SessionManager sessionManager, Path file, Path pinsFile) {
         BoardsViewModel viewModel = new BoardsViewModel();
         CreateBoardPresenter presenter = new CreateBoardPresenter(viewModel);
         JsonBoardDataAccessObject boardDAO = new JsonBoardDataAccessObject(file);
@@ -84,8 +91,10 @@ public final class BoardsModule {
         ViewBoardsController viewController =
                 new ViewBoardsController(refresh);
 
-        BoardsView boardsView =
-                new BoardsView(controller, viewModel, viewController);
+        OpenBoardController openController = new OpenBoardController(new BackgroundOpenBoard(
+                boardDAO, new JsonPinDataAccessObject(pinsFile), new OpenBoardPresenter(viewModel), viewModel, runner));
+        BoardsView boardsView = new BoardsView(controller, viewModel, viewController, openController,
+                new ImageLoader()::load);
 
         boardsView.addHierarchyListener(event -> {
             boolean showingChanged =
