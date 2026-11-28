@@ -20,6 +20,7 @@ import view.SwingTaskRunner;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -258,37 +259,62 @@ class DiscoveryControllerTest {
     }
 
     @Test
-    void signingBackIntoSameAccountCannotRestoreAnEarlierRequest() throws Exception {
+    void newSearchCanStartBeforeAnEarlierAccountRankingFinishes() throws Exception {
         Photo saved = new Photo("a", "First", "image-a", "page-a", "Artist", "profile", "download-a");
         Photo other = new Photo("b", "Second", "image-b", "page-b", "Artist", "profile", "download-b");
         InMemorySessionManager session = new InMemorySessionManager();
         User alice = new User("alice", "Alice", "hash");
         session.setCurrentUser(alice);
         RecordingView view = new RecordingView();
+        ArrayDeque<Runnable> pending = new ArrayDeque<>();
+        TaskRunner<List<DiscoveryPresenter.Card>> runner = (task, complete) -> pending.add(() -> {
+            List<DiscoveryPresenter.Card> result;
+            try {
+                result = task.call();
+            } catch (Exception failure) {
+                complete.accept(null, failure);
+                return;
+            }
+            complete.accept(result, null);
+        });
+        AtomicReference<List<Photo>> searchPage = new AtomicReference<>(List.of(saved, other));
         DiscoveryController controller = new DiscoveryController(
-                service(() -> List.of(saved, other)), url -> null, view, new SwingTaskRunner<>());
+                service(searchPage::get), url -> null, view, runner);
         session.addSessionListener(controller::sessionChanged);
-        runAndWait(view.done, () -> controller.search("room", 1, "", "relevant"));
-
-        runAndWait(view.done, () -> controller.recommendFromPins(() -> session.getCurrentUser().getId(), id -> {
-            SwingUtilities.invokeLater(() -> {
-                session.logout();
-                session.setCurrentUser(alice);
-            });
-            return List.of(new Pin("pin", id, saved));
-        }));
-        assertEquals(List.of("a", "b"), view.photoIds);
-        assertTrue(view.message.contains("Account changed"));
+        SwingUtilities.invokeAndWait(() -> {
+            controller.search("room", 1, "", "relevant");
+            pending.remove().run();
+            controller.recommendFromPins(() -> session.getCurrentUser().getId(),
+                    id -> List.of(new Pin("pin", id, saved)));
+            assertTrue(view.busy);
+            session.logout();
+            assertFalse(view.busy);
+            session.setCurrentUser(alice);
+            searchPage.set(List.of(saved));
+            controller.search("forest", 2, "", "relevant");
+            assertEquals(2, pending.size());
+            pending.remove().run();
+            assertTrue(view.busy);
+            assertEquals("Working…", view.message);
+            assertEquals(List.of("a", "b"), view.photoIds);
+            pending.remove().run();
+            assertFalse(view.busy);
+            assertEquals(List.of("a"), view.photoIds);
+            assertTrue(view.message.startsWith("Search page 2"));
+        });
     }
 
     private static final class RecordingView implements DiscoveryPresenter.View {
         private final AtomicReference<CountDownLatch> done = new AtomicReference<>();
         private List<String> photoIds = List.of();
         private String message = "";
+        private boolean busy;
 
         @Override public void busy(boolean value) {
-            if (!value) {
-                done.get().countDown();
+            busy = value;
+            CountDownLatch latch = done.get();
+            if (!value && latch != null) {
+                latch.countDown();
             }
         }
 
