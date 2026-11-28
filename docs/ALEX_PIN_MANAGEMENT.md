@@ -156,5 +156,10 @@ rules:
 |---|---|---|
 | Represent a valid Pin and its attributes | `Pin` entity | Concerns an individual Pin |
 | Check whether a user already saved a photograph | `SavePinInteractor`|Requires examining existing Pins (BR-4, BR-8) |
-| Retrieve and store Pins | `PinRepository` interface | Abstracts persistence operations required by the use case |
+| Check for duplicates and save a pin | `PinDataAccessInterface` | Used by `SavePinInteractor` |
+| Retrieve a user's saved pins | `ViewPinsDataAccessInterface` | Used by `ViewPinsInteractor` |
 | Read and write JSON files | `JsonPinDataAccessObject` | Concrete persistence implementation |
+
+
+
+See the [Pin Management Design Guide](./PIN_MANAGEMENT_DESIGN.md) for the class and sequence diagrams.
