@@ -17,6 +17,7 @@ import view.DiscoveryView;
 import view.MainView;
 import view.PlaceholderView;
 import app.presentation.AuthPanel;
+import view.BoardsView;
 import static org.junit.jupiter.api.Assertions.*;
 import view.PinsView;
 import data_access.JsonPinDataAccessObject;
@@ -52,7 +53,7 @@ class DiscoveryShellIntegrationTest {
             assertInstanceOf(DiscoveryView.class, discovery);
             assertEquals(1, initializations.get());
             tabs.setSelectedIndex(tabs.indexOfTab("Boards"));
-            assertInstanceOf(PlaceholderView.class, content(tabs));
+            assertInstanceOf(BoardsView.class, content(tabs));
             tabs.setSelectedIndex(tabs.indexOfTab("Discovery"));
             assertSame(discovery, content(tabs));
             assertEquals(1, initializations.get());

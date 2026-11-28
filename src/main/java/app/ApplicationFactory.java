@@ -49,7 +49,8 @@ public final class ApplicationFactory {
                 () -> AuthenticationModule.createPanel(sessionManager));
         features.put("Discovery", discoveryFactory);
         features.put("Pins", this::createPinsPanel);
-        features.put("Boards", () -> new PlaceholderView("Boards", "Gabriel"));
+        features.put("Boards",
+                () -> BoardsModule.createPanel(sessionManager));
         features.put("Profile", () -> new PlaceholderView("Profile", "Kieran and Matthew"));
         return new MainView(features);
     }
