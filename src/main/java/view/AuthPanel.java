@@ -1,6 +1,5 @@
-package app.presentation;
+package view;
 
-import view.PhotofyTheme;
 import entity.SessionManager;
 import entity.User;
 import interface_adapter.login.LoginController;

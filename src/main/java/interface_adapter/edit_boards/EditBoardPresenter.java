@@ -4,7 +4,6 @@ import interface_adapter.boards.BoardsState;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.open_boards.OpenBoardPresenter;
 import use_case.edit_boards.EditBoardEditorData;
-import use_case.edit_boards.EditBoardInteractor;
 import use_case.edit_boards.EditBoardOutputBoundary;
 import use_case.open_boards.OpenBoardOutputData;
 
@@ -34,12 +33,18 @@ public final class EditBoardPresenter implements EditBoardOutputBoundary {
     }
 
     @Override
+    public void presentBoardNotFound() {
+        BoardsState state = viewModel.getState();
+        state.clearOpenedBoard();
+        state.clearEditor();
+        state.setError("Board not found.");
+        viewModel.notifyStateChanged();
+    }
+
+    @Override
     public void presentError(String message) {
         BoardsState state = viewModel.getState();
-        if (EditBoardInteractor.BOARD_NOT_FOUND.equals(message)) {
-            state.clearOpenedBoard();
-            state.clearEditor();
-        } else if (state.getEditor() != null) {
+        if (state.getEditor() != null) {
             var draft = state.getEditor();
             state.setEditor(new EditBoardEditorState(draft.boardId(), draft.name(),
                     draft.availablePins(), draft.selectedPinIds()));

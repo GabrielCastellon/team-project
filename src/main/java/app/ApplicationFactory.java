@@ -16,7 +16,6 @@ import interface_adapter.view_pins.ViewPinsPresenter;
 import use_case.view_pins.ViewPinsInteractor;
 import view.MainView;
 import view.PinsView;
-import view.PlaceholderView;
 import data_access.ImageLoader;
 
 /** Composition root. Replace only your feature's factory when integrating a use case. */
