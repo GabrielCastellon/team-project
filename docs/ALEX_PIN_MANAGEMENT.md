@@ -34,6 +34,9 @@ Save Pins (Issue #) - 11/14/2026
 6. Saved pin is stored so that it can be accessed later
 7. Photofy confirms that the image was successfully saved and updates the interface to reflect the
    saved status
+8. User opens the Pins tab to view their personal collection. The saved cat photo appears as a thumbnail
+   with a caption and photographer credit. After the duplicate save attempt, the cat still appears only once.
+9. Switching to a second account that never saved the cat photo would not display the photo in the Pins tab. 
 
 ## Use Case: Save Pin
 
