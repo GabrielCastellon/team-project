@@ -16,7 +16,6 @@ import interface_adapter.view_pins.ViewPinsPresenter;
 import use_case.view_pins.ViewPinsInteractor;
 import view.MainView;
 import view.PinsView;
-import view.PlaceholderView;
 import data_access.ImageLoader;
 
 /** Composition root. Replace only your feature's factory when integrating a use case. */
@@ -49,9 +48,8 @@ public final class ApplicationFactory {
                 () -> AuthenticationModule.createPanel(sessionManager));
         features.put("Discovery", discoveryFactory);
         features.put("Pins", this::createPinsPanel);
-        features.put("Boards",
-                () -> BoardsModule.createPanel(sessionManager));
-        features.put("Profile", () -> new PlaceholderView("Profile", "Kieran and Matthew"));
+        features.put("Boards", () -> BoardsModule.createPanel(sessionManager));
+        features.put("Profile", ProfileModule::createPanel);
         return new MainView(features);
     }
 
