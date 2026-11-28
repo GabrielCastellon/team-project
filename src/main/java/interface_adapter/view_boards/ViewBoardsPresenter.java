@@ -18,6 +18,10 @@ public class ViewBoardsPresenter implements ViewBoardsOutputBoundary {
         outputData.getBoards().forEach((id, name) ->
                 loadedState.addBoard(id, name, outputData.getPinCount(id)));
 
+        var opened = viewModel.getState().getOpenedBoard();
+        if (opened != null && loadedState.getBoards().containsKey(opened.id())) {
+            loadedState.setOpenedBoard(opened);
+        }
         viewModel.setState(loadedState);
         viewModel.notifyStateChanged();
     }

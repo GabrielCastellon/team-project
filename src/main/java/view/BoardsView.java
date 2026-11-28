@@ -3,15 +3,16 @@ package view;
 import interface_adapter.boards.BoardsState;
 import interface_adapter.boards.BoardsViewModel;
 import interface_adapter.boards.BoardsViewModelListener;
-import interface_adapter.create_board.CreateBoardController;
+import interface_adapter.create_boards.CreateBoardController;
 import interface_adapter.view_boards.ViewBoardsController;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.HierarchyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import interface_adapter.open_boards.OpenBoardController;
+import interface_adapter.open_boards.OpenBoardPresenter.OpenedBoard;
+import interface_adapter.discovery.DiscoveryPresenter.ThumbnailLoader;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,6 +29,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     private final CreateBoardController createBoardController;
     private final ViewBoardsController viewBoardsController;
     private final BoardsViewModel viewModel;
+
+    private final OpenBoardController openBoardController;
+    private final CardLayout screens = new CardLayout();
+    private final BoardDetailView detail;
+    private OpenedBoard displayedBoard;
 
     private final JPanel boardsPanel = new JPanel();
     private final JMenu sortMenu = new JMenu("Sort by");
@@ -62,9 +68,16 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     public BoardsView(
             CreateBoardController createBoardController,
             BoardsViewModel viewModel,
-            ViewBoardsController viewBoardsController) {
+            ViewBoardsController viewBoardsController, OpenBoardController openBoardController,
+            ThumbnailLoader thumbnails) {
 
-        super(new BorderLayout());
+        super();
+        setLayout(screens);
+        this.openBoardController = openBoardController;
+        this.detail = new BoardDetailView(thumbnails, () -> {
+            viewModel.getState().clearOpenedBoard();
+            viewModel.notifyStateChanged();
+        });
 
         this.createBoardController = createBoardController;
         this.viewModel = viewModel;
@@ -75,8 +88,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         configureCreateButton();
         configureBoardsPanel();
 
-        add(createHeader(), BorderLayout.NORTH);
-        add(createScrollPane(), BorderLayout.CENTER);
+        JPanel list = new JPanel(new BorderLayout());
+        list.add(createHeader(), BorderLayout.NORTH);
+        list.add(createScrollPane(), BorderLayout.CENTER);
+        add(list, "list");
+        add(detail, "detail");
 
         viewModel.addListener(this);
 
@@ -190,13 +206,9 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
                     public void componentResized(
                             java.awt.event.ComponentEvent event) {
 
-                        int width = scrollPane.getViewport()
-                                .getWidth() - 64;
+                        int width = scrollPane.getViewport().getWidth() - 64;
 
-                        int columns = Math.max(
-                                1,
-                                (width + CARD_GAP)
-                                        / (CARD_WIDTH + CARD_GAP));
+                        int columns = Math.max(1, (width + CARD_GAP) / (CARD_WIDTH + CARD_GAP));
 
                         gridColumns = columns;
                         updateColumns();
@@ -240,21 +252,28 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         }
     }
 
-    private JPanel createBoardCard(String name, int pinCount) {
-        JPanel card = new JPanel(new BorderLayout(0, 8));
+    private JButton createBoardCard(String boardId, String name, int pinCount) {
+        JButton card = new JButton();
+        card.setLayout(new BorderLayout(0, 8));
+        card.setBorder(new EmptyBorder(0, 0, 0, 0));
+        card.setContentAreaFilled(false);
+        card.setBorderPainted(false);
+        card.setRolloverEnabled(true);
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        card.getAccessibleContext().setAccessibleName("Open board " + name);
+        card.addActionListener(event -> openBoardController.execute(currentUserId, boardId));
 
         card.setOpaque(false);
         card.setPreferredSize(
                 new Dimension(CARD_WIDTH, CARD_HEIGHT));
 
-        card.add(createBoardCover(), BorderLayout.CENTER);
+        card.add(createBoardCover(card), BorderLayout.CENTER);
 
         JLabel nameLabel = new JLabel(name);
         nameLabel.setFont(
                 PhotofyTheme.BUTTON.deriveFont(16f));
         nameLabel.setForeground(PhotofyTheme.TEXT);
         nameLabel.putClientProperty("html.disable", Boolean.TRUE);
-        nameLabel.setToolTipText(name);
 
         JLabel countLabel = new JLabel(pinCount + (pinCount == 1 ? " pin" : " pins"));
         countLabel.setFont(PhotofyTheme.BODY);
@@ -270,26 +289,12 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         return card;
     }
 
-    private JPanel createBoardCover() {
+    private JPanel createBoardCover(JButton card) {
         return new JPanel() {
-            private boolean hovered;
-
             {
                 setOpaque(false);
                 setPreferredSize(new Dimension(240, 160));
-                addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseEntered(MouseEvent event) {
-                        hovered = true;
-                        repaint();
-                    }
 
-                    @Override
-                    public void mouseExited(MouseEvent event) {
-                        hovered = false;
-                        repaint();
-                    }
-                });
             }
 
             @Override
@@ -321,7 +326,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
                 g.fillRect(split, height / 2,
                         width - split, height / 2);
 
-                if (hovered) {
+                if (card.getModel().isRollover() || card.isFocusOwner()) {
                     g.setColor(new Color(0, 0, 0, 32));
                     g.fillRect(0, 0, width, height);
                 }
@@ -367,7 +372,18 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     @Override
     public void stateChanged() {
         BoardsState state = viewModel.getState();
-        renderBoards(state);
+        OpenedBoard board = state.getOpenedBoard();
+        if (board == null) {
+            if (displayedBoard != null) {
+                detail.showBoard("", List.of());
+            }
+            renderBoards(state);
+            screens.show(this, "list");
+        } else if (board != displayedBoard) {
+            detail.showBoard(board.name(), board.pins());
+            screens.show(this, "detail");
+        }
+        displayedBoard = board;
 
         if (!state.getErrorMessage().isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -397,7 +413,11 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
                 boards.sort(byName);
             }
             for (Map.Entry<String, String> board : boards) {
-                boardsPanel.add(createBoardCard(board.getValue(), state.getPinCount(board.getKey())));
+                boardsPanel.add(createBoardCard(
+                        board.getKey(),
+                        board.getValue(),
+                        state.getPinCount(board.getKey())
+                ));
             }
         }
 

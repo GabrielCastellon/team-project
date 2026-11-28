@@ -1,19 +1,23 @@
 package app;
 
 import data_access.JsonBoardDataAccessObject;
+import data_access.JsonPinDataAccessObject;
+import data_access.ImageLoader;
+import interface_adapter.open_boards.OpenBoardController;
+import interface_adapter.open_boards.OpenBoardPresenter;
 import entity.BoardFactory;
 import entity.SessionManager;
 import entity.User;
 import java.awt.event.HierarchyEvent;
 import interface_adapter.boards.BoardsViewModel;
-import interface_adapter.create_board.CreateBoardController;
-import interface_adapter.create_board.CreateBoardPresenter;
+import interface_adapter.create_boards.CreateBoardController;
+import interface_adapter.create_boards.CreateBoardPresenter;
 import interface_adapter.view_boards.ViewBoardsController;
-import use_case.create_board.CreateBoardInteractor;
-import use_case.create_board.CreateBoardInputBoundary;
-import use_case.create_board.CreateBoardInputData;
-import use_case.create_board.CreateBoardOutputBoundary;
-import use_case.create_board.CreateBoardOutputData;
+import use_case.create_boards.CreateBoardInteractor;
+import use_case.create_boards.CreateBoardInputBoundary;
+import use_case.create_boards.CreateBoardInputData;
+import use_case.create_boards.CreateBoardOutputBoundary;
+import use_case.create_boards.CreateBoardOutputData;
 import view.SwingTaskRunner;
 import view.BoardsView;
 
@@ -24,7 +28,10 @@ public final class BoardsModule {
     }
 
     public static BoardsView createPanel(SessionManager sessionManager) {
-        Path file = Path.of("data", "boards.json");
+        return createPanel(sessionManager, Path.of("data", "boards.json"), Path.of("data", "pins.json"));
+    }
+
+    static BoardsView createPanel(SessionManager sessionManager, Path file, Path pinsFile) {
         BoardsViewModel viewModel = new BoardsViewModel();
         CreateBoardPresenter presenter = new CreateBoardPresenter(viewModel);
         JsonBoardDataAccessObject boardDAO = new JsonBoardDataAccessObject(file);
@@ -84,8 +91,10 @@ public final class BoardsModule {
         ViewBoardsController viewController =
                 new ViewBoardsController(refresh);
 
-        BoardsView boardsView =
-                new BoardsView(controller, viewModel, viewController);
+        OpenBoardController openController = new OpenBoardController(new BackgroundOpenBoard(
+                boardDAO, new JsonPinDataAccessObject(pinsFile), new OpenBoardPresenter(viewModel), viewModel, runner));
+        BoardsView boardsView = new BoardsView(controller, viewModel, viewController, openController,
+                new ImageLoader()::load);
 
         boardsView.addHierarchyListener(event -> {
             boolean showingChanged =

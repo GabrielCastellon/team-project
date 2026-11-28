@@ -1,7 +1,7 @@
-package interface_adapter.create_board;
+package interface_adapter.create_boards;
 
-import use_case.create_board.CreateBoardInputBoundary;
-import use_case.create_board.CreateBoardInputData;
+import use_case.create_boards.CreateBoardInputBoundary;
+import use_case.create_boards.CreateBoardInputData;
 
 public class CreateBoardController {
     private final CreateBoardInputBoundary inputBoundary;

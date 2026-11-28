@@ -1,0 +1,171 @@
+@startuml
+title Use Case 5.3 Open Boards
+top to bottom direction
+skinparam linetype ortho
+skinparam nodesep 48
+skinparam ranksep 38
+hide empty members
+
+' Shared classes show only members relevant to opening a board.
+class "OpenBoardController" as Controller {
+    - inputBoundary: OpenBoardInputBoundary
+    + execute(userId: String, boardId: String): void
+}
+class "OpenBoardPresenter" as Presenter {
+    - viewModel: BoardsViewModel
+    + prepareSuccessView(data: OpenBoardOutputData): void
+    + prepareBoardNotFoundView(): void
+    + prepareFailView(error: String): void
+}
+class "BoardsViewModel" as VM <<DS>> {
+    - state: BoardsState
+    + getState(): BoardsState
+    + notifyStateChanged(): void
+}
+interface "BoardsViewModelListener" as Listener {
+    + stateChanged(): void
+}
+class "BoardsView" as View {
+    - openBoardController: OpenBoardController
+    - viewModel: BoardsViewModel
+    - currentUserId: String
+    - createBoardCard(boardId: String, name: String, pinCount: int): JButton
+    + stateChanged(): void
+}
+class "BoardsState" as State {
+    - boards: Map<String, String>
+    - openedBoard: OpenedBoard
+    - errorMessage: String
+    + getOpenedBoard(): OpenedBoard
+    + setOpenedBoard(board: OpenedBoard): void
+    + clearOpenedBoard(): void
+    + setError(message: String): void
+}
+
+class "OpenBoardInputData" as InData <<DS>> {
+    - userId: String
+    - boardId: String
+    + userId(): String
+    + boardId(): String
+}
+interface "OpenBoardInputBoundary" as InPort {
+    + execute(data: OpenBoardInputData): void
+}
+interface "OpenBoardOutputBoundary" as OutPort {
+    + prepareSuccessView(data: OpenBoardOutputData): void
+    + prepareBoardNotFoundView(): void
+    + prepareFailView(error: String): void
+}
+class "OpenBoardOutputData" as OutData <<DS>> {
+    - boardId: String
+    - boardName: String
+    - pins: List<PinSummary>
+    + boardName(): String
+    + pins(): List<PinSummary>
+}
+class PinSummary <<DS>> {
+    - pinId: String
+    - description: String
+    - imageUrl: String
+    - photographer: String
+}
+class "OpenBoardInteractor" as UseCase {
+    - boardDAO: OpenBoardDataAccessInterface
+    - pinDAO: ViewPinsDataAccessInterface
+    - outputBoundary: OpenBoardOutputBoundary
+    + execute(data: OpenBoardInputData): void
+}
+interface "OpenBoardDataAccessInterface" as BoardPort {
+    + findByOwnerAndId(userId: String, boardId: String): Optional<Board>
+}
+interface "ViewPinsDataAccessInterface" as PinPort {
+    + findByOwnerId(ownerId: String): List<Pin>
+}
+
+class OpenedBoard <<DS>> {
+    - id: String
+    - name: String
+    - pins: List<PinCard>
+}
+
+class Board {
+    - id: String
+    - userId: String
+    - name: String
+    - pinIds: List<String>
+    + getName(): String
+    + getPinIds(): List<String>
+}
+class Pin {
+    - pinId: String
+    - ownerId: String
+    + getPinId(): String
+    + getPhoto(): Photo
+}
+class Photo {
+    + description(): String
+    + imageUrl(): String
+}
+class "JsonBoardDataAccessObject" as BoardDAO {
+    + findByOwnerAndId(userId: String, boardId: String): Optional<Board>
+}
+class "JsonPinDataAccessObject" as PinDAO {
+    + findByOwnerId(ownerId: String): List<Pin>
+}
+class "data/boards.json" as BoardsFile <<file>>
+class "data/pins.json" as PinsFile <<file>>
+
+' Same left-to-right columns and vertical order as View Boards.
+Controller -[hidden]down-> Presenter
+Presenter -[hidden]down-> VM
+VM -[hidden]down-> Listener
+Listener -[hidden]down-> View
+InData -[hidden]down-> InPort
+InPort -[hidden]down-> OutPort
+OutPort -[hidden]down-> OutData
+OutData -[hidden]down-> State
+UseCase -[hidden]down-> BoardPort
+BoardPort -[hidden]right-> PinPort
+BoardDAO -[hidden]right-> PinDAO
+BoardsFile -[hidden]right-> PinsFile
+PinPort -[hidden]right-> Photo
+Board -[hidden]down-> Pin
+Pin -[hidden]down-> Photo
+Controller -[hidden]right-> InPort
+InPort -[hidden]right-> UseCase
+UseCase -[hidden]right-> Board
+Presenter -[hidden]right-> OutPort
+VM -[hidden]right-> OutData
+OutData -[hidden]right-> BoardPort
+Listener -[hidden]right-> State
+State -[hidden]down-> PinSummary
+State -[hidden]right-> BoardDAO
+PinSummary -[hidden]right-> BoardsFile
+
+View -[norank]-> Controller
+View -[norank]-> VM
+View .[norank].|> Listener
+VM -[norank]-> Listener
+VM *-[norank]- State
+State -[norank]-> OpenedBoard
+Presenter ..> OpenedBoard
+Controller -[norank]-> InPort
+Controller -[norank]-> InData
+Presenter .[norank].|> OutPort
+Presenter -[norank]-> VM
+Presenter -[norank]-> OutData
+UseCase .[norank].|> InPort
+UseCase -[norank]-> InData
+UseCase -[norank]-> OutPort
+UseCase -[norank]-> OutData
+OutData *-[norank]- PinSummary
+UseCase -[norank]-> BoardPort
+UseCase -[norank]-> PinPort
+BoardPort -[norank]-> Board
+PinPort -[norank]-> Pin
+Pin -[norank]-> Photo
+BoardPort <|.down. BoardDAO
+PinPort <|.down. PinDAO
+BoardDAO -down-> BoardsFile
+PinDAO -down-> PinsFile
+@enduml

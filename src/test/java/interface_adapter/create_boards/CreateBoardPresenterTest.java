@@ -1,8 +1,8 @@
-package interface_adapter.create_board;
+package interface_adapter.create_boards;
 
 import interface_adapter.boards.BoardsViewModel;
 import org.junit.jupiter.api.Test;
-import use_case.create_board.CreateBoardOutputData;
+import use_case.create_boards.CreateBoardOutputData;
 
 import java.util.Map;
 

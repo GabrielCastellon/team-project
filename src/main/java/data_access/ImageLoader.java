@@ -15,8 +15,7 @@ import javax.imageio.ImageIO;
 
 public final class ImageLoader {
 
-    private final HttpClient client =
-            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    private HttpClient client;
 
     private final Map<String, BufferedImage> cache =
             new LinkedHashMap<String, BufferedImage>(32, .75f, true) {
@@ -39,6 +38,9 @@ public final class ImageLoader {
             throw new IOException("Expected an Unsplash HTTPS image URL");
         }
         try {
+            if (client == null) {
+                client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+            }
             HttpResponse<byte[]> response =
                     client.send(
                             HttpRequest.newBuilder(uri)

@@ -1,7 +1,7 @@
-package interface_adapter.create_board;
+package interface_adapter.create_boards;
 
 import org.junit.jupiter.api.Test;
-import use_case.create_board.CreateBoardInputData;
+import use_case.create_boards.CreateBoardInputData;
 
 import java.util.ArrayList;
 import java.util.List;
