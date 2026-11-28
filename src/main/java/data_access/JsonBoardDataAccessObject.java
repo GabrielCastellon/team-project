@@ -3,6 +3,7 @@ package data_access;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import entity.Board;
+import use_case.edit_boards.EditBoardDataAccessInterface;
 import use_case.create_boards.BoardDataAccessInterface;
 import use_case.view_boards.ViewBoardsDataAccessInterface;
 
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import use_case.open_boards.OpenBoardDataAccessInterface;
 
-public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface, OpenBoardDataAccessInterface {
+public class JsonBoardDataAccessObject implements BoardDataAccessInterface, ViewBoardsDataAccessInterface, OpenBoardDataAccessInterface, EditBoardDataAccessInterface {
     private final Path filePath;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -61,7 +62,36 @@ public class JsonBoardDataAccessObject implements BoardDataAccessInterface, View
     public synchronized void save(Board board) {
         List<Board> boards = readBoards();
         boards.add(board);
+        writeBoards(boards);
+    }
 
+    @Override
+    public synchronized UpdateResult updateOwnedBoard(String userId, String boardId,
+                                                       String name, List<String> pinIds) {
+        List<Board> boards = readBoards();
+        int target = -1;
+        for (int i = 0; i < boards.size(); i++) {
+            Board board = boards.get(i);
+            if (board.getUserId().equals(userId) && board.getId().equals(boardId)) {
+                target = i;
+                break;
+            }
+        }
+        if (target == -1) {
+            return UpdateResult.NOT_FOUND;
+        }
+        for (Board board : boards) {
+            if (board.getUserId().equals(userId) && !board.getId().equals(boardId)
+                    && board.getName().equals(name)) {
+                return UpdateResult.DUPLICATE_NAME;
+            }
+        }
+        boards.set(target, new Board(boardId, userId, name, pinIds));
+        writeBoards(boards);
+        return UpdateResult.UPDATED;
+    }
+
+    private void writeBoards(List<Board> boards) {
         try {
             Path directory = filePath.getParent();
             Files.createDirectories(directory);

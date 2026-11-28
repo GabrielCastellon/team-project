@@ -1,0 +1,197 @@
+@startuml
+title Use Case 5.4 Edit Boards
+top to bottom direction
+skinparam linetype ortho
+skinparam nodesep 48
+skinparam ranksep 45
+hide empty members
+
+' Interface adapters
+class "EditBoardController" as Controller {
+    - inputBoundary: EditBoardInputBoundary
+    + load(userId: String, boardId: String): void
+    + save(userId: String, boardId: String,\n    name: String, pinIds: List<String>): void
+}
+class "EditBoardPresenter" as Presenter {
+    - viewModel: BoardsViewModel
+    + presentEditor(data: EditBoardEditorData): void
+    + presentSaved(data: OpenBoardOutputData): void
+    + presentError(message: String): void
+}
+class "BoardsViewModel" as VM <<DS>> {
+    - state: BoardsState
+    - listeners: List<BoardsViewModelListener>
+    + getState(): BoardsState
+    + setState(state: BoardsState): void
+    + addListener(listener: BoardsViewModelListener): void
+    + notifyStateChanged(): void
+}
+class "BoardsState" as State {
+    - editor: EditBoardEditorState
+    - openedBoard: OpenedBoard
+    - errorMessage: String
+    + setEditor(editorState: EditBoardEditorState): void
+    + clearEditor(): void
+}
+
+' Application business rules
+class "EditBoardInputData" as InData <<DS>> {
+    - userId: String
+    - boardId: String
+    - name: String
+    - pinIds: List<String>
+}
+interface "EditBoardInputBoundary" as InPort {
+    + load(userId: String, boardId: String): void
+    + save(data: EditBoardInputData): void
+}
+interface "EditBoardOutputBoundary" as OutPort {
+    + presentEditor(data: EditBoardEditorData): void
+    + presentSaved(data: OpenBoardOutputData): void
+    + presentError(message: String): void
+}
+class "EditBoardEditorData" as EditorData <<DS>> {
+    - boardId: String
+    - name: String
+    - availablePins: List<PinSummary>
+    - selectedPinIds: List<String>
+}
+class "OpenBoardOutputData" as OutData <<DS>> {
+    - boardId: String
+    - boardName: String
+    - pins: List<PinSummary>
+}
+class "EditBoardInteractor" as UseCase {
+    - boardDAO: EditBoardDataAccessInterface
+    - pinDAO: ViewPinsDataAccessInterface
+    - outputBoundary: EditBoardOutputBoundary
+    + load(userId: String, boardId: String): void
+    + save(data: EditBoardInputData): void
+}
+interface "EditBoardDataAccessInterface" as DAO {
+    + updateOwnedBoard(userId: String,\n    boardId: String, name: String,\n    pinIds: List<String>): UpdateResult
+}
+interface "OpenBoardDataAccessInterface" as ReadDAO {
+    + findByOwnerAndId(userId: String,\n    boardId: String): Optional<Board>
+}
+interface "ViewPinsDataAccessInterface" as PinDAO {
+    + findByOwnerId(userId: String): List<Pin>
+}
+
+' Enterprise business rules
+class Board {
+    - id: String
+    - userId: String
+    - name: String
+    - pinIds: List<String>
+    + getId(): String
+    + getUserId(): String
+    + getName(): String
+    + getPinIds(): List<String>
+}
+class Pin {
+    + getPinId(): String
+    + getPhoto(): Photo
+}
+
+' Frameworks and drivers
+class "BoardsView" as V {
+    - editBoardController: EditBoardController
+    - viewModel: BoardsViewModel
+    - currentUserId: String
+    + setCurrentUserId(userId: String): void
+    + stateChanged(): void
+}
+interface "BoardsViewModelListener" as Listener {
+    + stateChanged(): void
+}
+class "EditBoardDialog" as Dialog {
+    - name: String
+    - selectedPinIds: List<String>
+}
+class "JsonBoardDataAccessObject" as JsonDAO {
+    - filePath: Path
+    + findByOwnerAndId(userId: String,\n    boardId: String): Optional<Board>
+    + updateOwnedBoard(userId: String,\n    boardId: String, name: String,\n    pinIds: List<String>): UpdateResult
+}
+class "JsonPinDataAccessObject" as JsonPinDAO {
+    + findByOwnerId(userId: String): List<Pin>
+}
+class "boards.json" as File <<file>>
+class "pins.json" as PinFile <<file>>
+
+' Layout only
+Controller -[hidden]down-> Presenter
+Presenter -[hidden]down-> VM
+VM -[hidden]down-> Listener
+Listener -[hidden]down-> V
+V -[hidden]down-> Dialog
+
+InData -[hidden]down-> InPort
+InPort -[hidden]down-> OutPort
+OutPort -[hidden]down-> EditorData
+EditorData -[hidden]down-> OutData
+OutData -[hidden]down-> State
+
+UseCase -[hidden]down-> DAO
+DAO -[hidden]down-> ReadDAO
+ReadDAO -[hidden]down-> JsonDAO
+JsonDAO -[hidden]down-> File
+
+PinDAO -[hidden]down-> JsonPinDAO
+JsonPinDAO -[hidden]down-> PinFile
+
+Board -[hidden]down-> Pin
+
+Controller -[hidden]right-> InPort
+InPort -[hidden]right-> UseCase
+UseCase -[hidden]right-> Board
+
+Presenter -[hidden]right-> OutPort
+VM -[hidden]right-> EditorData
+
+DAO -[hidden]right-> PinDAO
+PinDAO -[hidden]right-> Pin
+
+JsonDAO -[hidden]right-> JsonPinDAO
+File -[hidden]right-> PinFile
+
+V -[hidden]right-> State
+
+' View, controller, presenter, and listener
+V -[norank]-> Controller
+V -[norank]-> VM
+V .[norank].|> Listener
+V -[norank]-> Dialog
+
+VM -[norank]-> Listener
+VM *-[norank]- State
+
+Controller -[norank]-> InPort
+Controller -[norank]-> InData
+
+Presenter .[norank].|> OutPort
+Presenter -[norank]-> VM
+
+' Interactor and its boundaries
+UseCase .[norank].|> InPort
+UseCase -[norank]-> InData
+UseCase -[norank]-> OutPort
+UseCase -[norank]-> EditorData
+UseCase -[norank]-> OutData
+UseCase -[norank]-> DAO
+UseCase -[norank]-> PinDAO
+UseCase -[norank]-> Board
+
+' Persistence
+DAO -[norank]-|> ReadDAO
+ReadDAO -[norank]-> Board
+PinDAO -[norank]-> Pin
+
+JsonDAO .[norank].|> DAO
+JsonPinDAO .[norank].|> PinDAO
+
+JsonDAO -down-> File
+JsonPinDAO -down-> PinFile
+
+@enduml

@@ -21,6 +21,7 @@ public class ViewBoardsPresenter implements ViewBoardsOutputBoundary {
         var opened = viewModel.getState().getOpenedBoard();
         if (opened != null && loadedState.getBoards().containsKey(opened.id())) {
             loadedState.setOpenedBoard(opened);
+            loadedState.setEditor(viewModel.getState().getEditor());
         }
         viewModel.setState(loadedState);
         viewModel.notifyStateChanged();
