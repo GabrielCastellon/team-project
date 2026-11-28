@@ -15,10 +15,10 @@ The **class diagram** shows every application type in the feature, grouped by Cl
 
 ### Main flow
 
-1. The user opens the Profile tab. The system shows the stored display name, biography and avatar file name.
-2. The user clicks **Edit Profile**.
-3. The system shows a form pre-filled with the current display name, biography and avatar path.
-4. The user edits any of the fields, optionally choosing an avatar with **Browse…** (only `.png`, `.jpg` and `.jpeg` files are offered).
+1. The user opens the Profile tab. The system shows the stored display name, biography and profile picture as a circle. With no picture, it shows a red circle with the first letter of the display name.
+2. The user clicks **Edit profile**.
+3. The system shows a form pre-filled with the current display name and biography, with a round preview of the current picture.
+4. The user edits the fields, and optionally clicks **Choose photo…** to pick a picture (only `.png`, `.jpg` and `.jpeg` files are offered) or **Remove photo** to go back to no picture. The preview updates straight away.
 5. The user clicks **Save**. The system validates the values.
 6. The system saves the profile and returns to display mode, showing the updated profile and the message **"Profile updated"**.
 
@@ -34,12 +34,13 @@ The **class diagram** shows every application type in the feature, grouped by Cl
 
 - **1a. First-time user (no stored profile):** the system shows a default profile (display name "New user", empty biography, no avatar). The first save creates the stored profile, nothing errors.
 - **1b. Stored profile can't be read:** the system shows "Couldn't load your profile, try again".
-- **1c. Not signed in:** the tab shows only "Sign in to view your profile". No profile is shown, there is no Edit Profile button, and nothing is read from storage.
+- **1c. Not signed in:** the tab shows only "Sign in to view your profile". No profile is shown, there is no Edit profile button, and nothing is read from storage.
 - **1d. Account switch or logout while the tab is open:** the tab reloads for the newly signed-in user, or shows the sign-in message after a logout. An open edit form is discarded, never saved, so one account's edits can't land on another account.
+- **1e. Saved picture can't be shown** (the file was moved or deleted after saving): the red initial is shown instead, with "Picture can't be shown" underneath. Nothing crashes, and the stored path is unchanged.
 - **4a. Cancel:** the user clicks **Cancel**. The edits are discarded, nothing is saved, and the view returns to the stored values.
 - **5a. Invalid display name:** the error appears next to the name field. The form stays open with all of the user's edits. Nothing is saved.
 - **5b. Biography too long:** the error appears next to the biography. Nothing is saved.
-- **5c. Bad avatar (wrong extension or missing file):** the error appears next to the avatar field. The old avatar is kept. Nothing is saved.
+- **5c. Bad avatar (wrong extension or missing file):** the error appears under the photo preview. The old avatar is kept. Nothing is saved.
 - **6a. Save fails (`IOException`):** the system shows "Couldn't save your changes, try again". The form stays filled so the user can retry.
 
 **Postconditions:** on success, the stored profile equals the new values. On any failure, the stored profile is unchanged.
@@ -52,7 +53,7 @@ classDiagram
 
     namespace view {
         class ProfileView {
-            +ProfileView(ViewProfileController, EditProfileController, ProfileViewModel)
+            +ProfileView(ViewProfileController, EditProfileController, ProfileViewModel, AvatarImageLoader)
             +stateChanged()
             +reload()
             -render(ProfileState state)
@@ -60,6 +61,7 @@ classDiagram
             -cancelEditing()
             -save()
             -chooseAvatar()
+            -loadAvatar(JLabel label, String path, String name, int size, Runnable onFailure)
         }
     }
 
@@ -83,6 +85,10 @@ classDiagram
             +getState() ProfileState
             +setState(ProfileState state)
             +addListener(ProfileViewModelListener listener)
+        }
+        class AvatarImageLoader {
+            <<interface>>
+            +load(String path) BufferedImage
         }
         class ProfileViewModelListener {
             <<interface>>
@@ -181,6 +187,9 @@ classDiagram
             -Path file
         }
         class FileSystemAvatarFileChecker
+        class FileAvatarImageLoader {
+            +load(String path) BufferedImage
+        }
     }
 
     namespace app {
@@ -191,6 +200,7 @@ classDiagram
     }
 
     ProfileView ..|> ProfileViewModelListener
+    ProfileView --> AvatarImageLoader : loads the picture off the EDT
     ProfileView --> ViewProfileController : load on open
     ProfileView --> EditProfileController : Save
     ProfileView --> ProfileViewModel : reads state
@@ -225,6 +235,7 @@ classDiagram
     ProfileModule ..> ProfileView : constructs
     ProfileModule ..> JsonProfileDataAccessObject : constructs
     ProfileModule ..> FileSystemAvatarFileChecker : constructs
+    ProfileModule ..> FileAvatarImageLoader : passes load as an AvatarImageLoader
     ProfileModule ..> ViewProfileInteractor : constructs
     ProfileModule ..> EditProfileInteractor : constructs
     ProfileModule --> SessionManager : reads current user, listens for changes
@@ -324,6 +335,8 @@ Opening the tab for the first time follows the same path from `reload()`, which 
 - **Validation lives in the interactor, not the entity.** Entity constructors only do non-null checks, trimming and safe defaults. Rules that the user should see as a message next to a field (required, maximum length, avatar format and existence) are application rules, so `EditProfileInteractor` checks them and reports a `ProfileField`. `AppearanceSettings` does keep its font-size bound (10 to 24), because that is a rendering invariant rather than a form error.
 - **Two data-access interfaces, one DAO (Interface Segregation).** View Profile depends on the read-only `ViewProfileDataAccessInterface`, Edit Profile on `ProfileDataAccessInterface` (read and save). `JsonProfileDataAccessObject` implements both with one `findProfile` method. Neither use case package depends on the other.
 - **`AvatarFileChecker` (Dependency Inversion).** The interactor asks an interface whether the avatar file exists, so its tests use an in-memory fake and never touch the real filesystem. `FileSystemAvatarFileChecker` is the real implementation in `data_access`.
+- **Showing the picture without breaking the layers.** The view needs the image, but `view` may not depend on `data_access`. So the view depends on a one-method `AvatarImageLoader` interface in `interface_adapter`, and `ProfileModule` passes `new FileAvatarImageLoader()::load`. `FileAvatarImageLoader` doesn't implement the interface, because `data_access` may not depend on `interface_adapter` either: the method reference bridges them, the same way Kevin's `ImageLoader` is passed as `images::load`. The picture loads on a background worker (Kevin's `SwingTaskRunner`, as Pins uses), and a picture that finishes after the profile changed is ignored, so one account's photo can never appear on another's profile.
+- **Look and feel.** The tab uses the team's `PhotofyTheme` (red, warm off-white background, white cards) so it matches Accounts and Boards. Display mode is a centred column like a Pinterest profile page. Edit mode is a white card like the Accounts form. Errors are red and sit directly under their field; a field's border turns red while it has keyboard focus.
 - **`ProfileState` holds the stored values.** The name, biography and avatar in the state are always what is saved. The edit form's text belongs to the view. That is what makes Cancel (4a) restore the stored values and what lets a failed save keep the user's edits on screen.
 - **The `saved` flag.** After Save, the view must decide whether to leave edit mode. A successful save and a failed save both have no field errors, so the presenter sets `saved=true` only on success instead of the view comparing message text.
 - **Threading.** Controllers run the interactor on an `Executor` because `interface_adapter` may not depend on Swing (enforced by `DependencyRuleTest`). The executor is a single daemon thread: a load and a save never overlap, and the thread never keeps the app running after the window closes. The view model's state is `volatile` and its listener list is a `CopyOnWriteArrayList` because presenters update them from that thread.
@@ -350,7 +363,7 @@ Opening the tab for the first time follows the same path from `reload()`, which 
 }
 ```
 
-**Demo:** `mvn compile exec:java`. Open the Profile tab while signed out and it shows "Sign in to view your profile". Sign in on the Accounts tab and Profile shows that account's profile. Click Edit Profile, change the name and Save. Close the app, start it again, sign in, and the new name is still shown. Sign in as a second account and Profile shows that account's own profile.
+**Demo:** `mvn compile exec:java`. Open the Profile tab while signed out and it shows "Sign in to view your profile". Sign in on the Accounts tab and Profile shows that account's profile. Click Edit profile, choose a photo, change the name and Save. Close the app, start it again, sign in, and the new name and picture are still shown. Sign in as a second account and Profile shows that account's own profile.
 
 ## 7. Tests
 
@@ -361,7 +374,8 @@ Opening the tab for the first time follows the same path from `reload()`, which 
 | `use_case.view_profile.ViewProfileInteractorTest` | Stored profile shown, missing profile shows the default, read failure message, not signed in (null or blank id) asks to sign in without reading storage |
 | `data_access.JsonProfileDataAccessObjectTest` | Save, then a new DAO on the same file loads it, missing file, corrupt file |
 | `data_access.FileSystemAvatarFileCheckerTest` | Real file, missing file, directory, blank path |
+| `data_access.FileAvatarImageLoaderTest` | A real PNG loads; a missing file and a file that isn't an image both throw `IOException` |
 | `interface_adapter.profile.*PresenterTest` | Success clears errors and sets "Profile updated" and `saved`, each `ProfileField` sets only its own error, edit failures keep the stored values, a failed load clears the previous values, the sign-in state hides the profile |
 | `interface_adapter.profile.*ControllerTest` | The interactor only runs on the executor, with the right user id and form values; the signed-in user is read when the request is made, `null` when signed out |
 | `interface_adapter.profile.ProfileViewModelTest` | Listeners are notified on every state change |
-| `app.ProfileModuleTest` | Real wiring with a real session on a `@TempDir` file: signed out shows only the sign-in message, the signed-in user's stored profile is shown, a first-time user sees "New user", signing in after opening the tab loads that user, switching accounts mid-edit shows the new user and saves nothing, logout hides the profile, Edit then Save writes the file and a new panel reloads it, blank name shows the error and saves nothing, Edit and Cancel are disabled while loading and saving |
+| `app.ProfileModuleTest` | Real wiring with a real session on a `@TempDir` file: signed out shows only the sign-in message, the signed-in user's stored profile is shown, a first-time user sees "New user", signing in after opening the tab loads that user, switching accounts mid-edit shows the new user and saves nothing, logout hides the profile, Edit then Save writes the file and a new panel reloads it, blank name shows the error and saves nothing, Edit and Cancel are disabled while loading and saving, a saved photo is shown as a round picture with no file name, a photo file that's gone shows the red initial and "Picture can't be shown" |
