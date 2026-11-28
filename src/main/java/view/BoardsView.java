@@ -39,6 +39,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
     private EditBoardEditorState shownEditor;
     private final ThumbnailLoader editThumbnails;
     private boolean addPinsOnly;
+    private String pendingBoardEditId;
     private List<String> originalEditorPins;
     private final CardLayout screens = new CardLayout();
     private final BoardDetailView detail;
@@ -251,6 +252,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
 
     public void setCurrentUserId(String userId) {
         if (!Objects.equals(currentUserId, userId)) {
+            pendingBoardEditId = null;
             currentUserId = userId;
             viewModel.resetForAccountChange();
 
@@ -330,7 +332,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         }
     }
 
-    private JButton createBoardCard(String boardId, String name, int pinCount) {
+    private JComponent createBoardCard(String boardId, String name, int pinCount) {
         JButton card = new JButton();
         card.setLayout(new BorderLayout(0, 8));
         card.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -340,6 +342,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.getAccessibleContext().setAccessibleName("Open board " + name);
         card.addActionListener(event -> {
+            pendingBoardEditId = null;
             if (!viewModel.isDeletePending()) {
                 openBoardController.execute(currentUserId, boardId);
             }
@@ -349,7 +352,8 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         card.setPreferredSize(
                 new Dimension(CARD_WIDTH, CARD_HEIGHT));
 
-        card.add(createBoardCover(card), BorderLayout.CENTER);
+        JPanel cover = createBoardCover(card);
+        card.add(cover, BorderLayout.CENTER);
 
         JLabel nameLabel = new JLabel(name);
         nameLabel.setFont(
@@ -368,7 +372,109 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         caption.add(countLabel);
         card.add(caption, BorderLayout.SOUTH);
 
-        return card;
+        if (editBoardController == null) {
+            return card;
+        }
+        return withEditPencil(card, cover, boardId, name);
+    }
+
+    private JComponent withEditPencil(JButton card, JPanel cover, String boardId, String name) {
+        final boolean[] hovered = {false};
+        JButton pencil = new JButton() {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                if (!hovered[0] && !card.isFocusOwner() && !isFocusOwner()) {
+                    return;
+                }
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(getModel().isRollover() ? new Color(243, 241, 238) : Color.WHITE);
+                g.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g.translate((getWidth() - 18) / 2.0, (getHeight() - 18) / 2.0);
+                g.setColor(PhotofyTheme.TEXT);
+                g.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g.drawPolygon(new int[]{2, 3, 13, 16, 16, 6},
+                        new int[]{16, 11, 1, 4, 5, 15}, 6);
+                g.drawLine(10, 4, 14, 8);
+                g.dispose();
+                if (isFocusOwner()) {
+                    Graphics2D focus = (Graphics2D) graphics.create();
+                    focus.setColor(PhotofyTheme.TEXT);
+                    focus.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 11, 11);
+                    focus.dispose();
+                }
+            }
+        };
+        pencil.setOpaque(false);
+        pencil.setContentAreaFilled(false);
+        pencil.setBorderPainted(false);
+        pencil.setFocusPainted(false);
+        pencil.setRolloverEnabled(true);
+        pencil.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        pencil.setToolTipText("Edit board");
+        pencil.getAccessibleContext().setAccessibleName("Edit board " + name);
+        pencil.addActionListener(event -> {
+            if (currentUserId != null && !currentUserId.isBlank()
+                    && !viewModel.isDeletePending()
+                    && viewModel.getState().getBoards().containsKey(boardId)) {
+                pendingBoardEditId = boardId;
+                openBoardController.execute(currentUserId, boardId);
+            }
+        });
+
+        JLayeredPane tile = new JLayeredPane() {
+            @Override
+            public void doLayout() {
+                card.setBounds(0, 0, getWidth(), getHeight());
+                card.doLayout();
+                Rectangle bounds = cover.getBounds();
+                int size = 30;
+                pencil.setBounds(bounds.x + Math.max(0, bounds.width - size - 8),
+                        bounds.y + Math.max(0, bounds.height - size - 8), size, size);
+            }
+        };
+        tile.setOpaque(false);
+        tile.setPreferredSize(new Dimension(CARD_WIDTH, CARD_HEIGHT));
+        tile.add(card, JLayeredPane.DEFAULT_LAYER);
+        tile.add(pencil, JLayeredPane.PALETTE_LAYER);
+
+        Runnable repaintTile = () -> {
+            card.putClientProperty("boardPencilHovered", hovered[0] || pencil.isFocusOwner());
+            cover.repaint();
+            pencil.repaint();
+        };
+        java.awt.event.MouseAdapter hover = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent event) {
+                hovered[0] = true;
+                repaintTile.run();
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent event) {
+                Point point = SwingUtilities.convertPoint(event.getComponent(), event.getPoint(), tile);
+                hovered[0] = tile.contains(point);
+                repaintTile.run();
+            }
+        };
+        card.addMouseListener(hover);
+        pencil.addMouseListener(hover);
+        tile.addMouseListener(hover);
+        java.awt.event.FocusAdapter focus = new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent event) {
+                repaintTile.run();
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent event) {
+                repaintTile.run();
+            }
+        };
+        card.addFocusListener(focus);
+        pencil.addFocusListener(focus);
+        return tile;
     }
 
     private JPanel createBoardCover(JButton card) {
@@ -408,7 +514,8 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
                 g.fillRect(split, height / 2,
                         width - split, height / 2);
 
-                if (card.getModel().isRollover() || card.isFocusOwner()) {
+                if (card.getModel().isRollover() || card.isFocusOwner()
+                        || Boolean.TRUE.equals(card.getClientProperty("boardPencilHovered"))) {
                     g.setColor(new Color(0, 0, 0, 32));
                     g.fillRect(0, 0, width, height);
                 }
@@ -468,6 +575,7 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         displayedBoard = board;
 
         if (!state.getErrorMessage().isEmpty()) {
+            pendingBoardEditId = null;
             String error = state.getErrorMessage();
             state.setError("");
             JOptionPane.showMessageDialog(this, error, "Boards", JOptionPane.ERROR_MESSAGE);
@@ -478,6 +586,12 @@ public class BoardsView extends JPanel implements BoardsViewModelListener {
         } else if (editBoardController != null && editor != shownEditor) {
             shownEditor = editor;
             SwingUtilities.invokeLater(() -> showEditBoardDialog(editor));
+        }
+
+        if (pendingBoardEditId != null && board != null
+                && pendingBoardEditId.equals(board.id())) {
+            pendingBoardEditId = null;
+            beginEdit(false);
         }
     }
 
