@@ -15,6 +15,23 @@ import java.util.Map;
 
 final class EditBoardDialog {
     private String name;
+    private boolean deleteRequested;
+
+    public boolean isDeleteRequested() {
+        return deleteRequested;
+    }
+
+    private void confirmDelete(JDialog dialog) {
+        Object[] options = {"Delete board", "Cancel"};
+        int answer = JOptionPane.showOptionDialog(dialog,
+                "Permanently delete this board? Your saved pins will not be deleted.",
+                "Delete this board?", JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE, null, options, options[1]);
+        if (answer == JOptionPane.YES_OPTION) {
+            deleteRequested = true;
+            dialog.dispose();
+        }
+    }
     private List<String> selectedPinIds = List.of();
 
     static JButton pill(String text, boolean primary) {
@@ -45,6 +62,12 @@ final class EditBoardDialog {
 
     boolean show(Component parent, EditBoardEditorState state, boolean addOnly,
                  List<String> originalPins, ThumbnailLoader thumbnails) {
+        return show(parent, state, addOnly, originalPins, thumbnails, false);
+    }
+
+    boolean show(Component parent, EditBoardEditorState state, boolean addOnly,
+                 List<String> originalPins, ThumbnailLoader thumbnails, boolean allowDelete) {
+        deleteRequested = false;
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(parent),
                 addOnly ? "Add pins" : "Edit board", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -173,7 +196,16 @@ final class EditBoardDialog {
         });
         actions.add(cancel);
         actions.add(save);
-        panel.add(actions, BorderLayout.SOUTH);
+        JPanel footer = new JPanel(new BorderLayout(8, 0));
+        footer.setOpaque(false);
+        if (!addOnly && allowDelete) {
+            JButton delete = pill("Delete board", false);
+            delete.setForeground(PhotofyTheme.RED);
+            delete.addActionListener(event -> confirmDelete(dialog));
+            footer.add(delete, BorderLayout.WEST);
+        }
+        footer.add(actions, BorderLayout.EAST);
+        panel.add(footer, BorderLayout.SOUTH);
         dialog.setContentPane(panel);
         dialog.getRootPane().setDefaultButton(save);
         dialog.getRootPane().registerKeyboardAction(event -> dialog.dispose(),

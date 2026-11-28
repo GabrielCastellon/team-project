@@ -41,7 +41,7 @@ final class BoardDetailView extends JPanel {
         JPanel header = new JPanel();
         header.setOpaque(false);
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        JButton back = new JButton("â€¹   Boards") {
+        JButton back = new JButton("‹  Boards") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D p = smooth(g);
                 p.setColor(getModel().isRollover() || isFocusOwner() ? new Color(225, 224, 220) : new Color(243, 242, 239));
